@@ -1,9 +1,10 @@
-"""策略1 应用入口：今日信号 / 持仓分布 / 近3年回测。
+"""策略1 应用入口：今日信号 / 持仓分布 / 回测 / 熔断对比。
 
 用法:
-  python scripts/strategy1.py signal          # 今日比价方向 + 持仓建议
-  python scripts/strategy1.py signal --top-n 50
-  python scripts/strategy1.py backtest        # 近3年回测
+  python scripts/strategy1.py signal
+  python scripts/strategy1.py signal --breaker          # 启用 A+B+C 熔断
+  python scripts/strategy1.py backtest --breaker
+  python scripts/strategy1.py compare-breaker           # 2026至今 原版 vs 熔断
 """
 
 from __future__ import annotations
@@ -19,11 +20,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from volume_surge_prob import A_SHARE_UNIVERSE, download_panel
 
 from quant.strategies.strategy1 import (
+    STRATEGY_BREAKER_NAME,
     STRATEGY_ID,
     STRATEGY_NAME,
+    BreakerConfig,
     Strategy1Config,
     build_anchors,
     generate_target_weights,
+    generate_target_weights_breaker,
 )
 
 BANK_NAMES = {
@@ -81,13 +85,22 @@ def cmd_signal(args: argparse.Namespace) -> int:
     direction = "向上" if last["trend"] > 0 else "向下"
 
     cfg = Strategy1Config(top_n=args.top_n)
-    w, state = generate_target_weights(close, volume, cfg=cfg, bank_symbols=banks)
+    if args.breaker:
+        w, state = generate_target_weights_breaker(
+            close, volume, cfg=cfg, breaker=BreakerConfig(), bank_symbols=banks
+        )
+        tag = STRATEGY_BREAKER_NAME
+    else:
+        w, state = generate_target_weights(close, volume, cfg=cfg, bank_symbols=banks)
+        tag = f"策略{STRATEGY_ID}｜{STRATEGY_NAME}"
     st = state.loc[dt]
     pos = w.loc[dt]
     pos = pos[pos > 1e-12].sort_values(ascending=False)
 
     print("=" * 56)
-    print(f"策略{STRATEGY_ID}｜{STRATEGY_NAME}")
+    print(tag if args.breaker else f"{tag}")
+    if args.breaker:
+        print("规则: A段回撤-8%→银行 | B跑输银行3%/5日→银行 | C单日-3%→仓位50%")
     print(f"信号日: {dt.date()}")
     print(
         f"银行均价={last['bank_avg']:.2f} | 全A均价={last['alla_avg']:.2f} | "
@@ -96,6 +109,8 @@ def cmd_signal(args: argparse.Namespace) -> int:
     print(f"比价20日: {last['trend']:+.2%} → {direction}")
     print(f"z-score: {last['z']:.2f} | 总仓位建议: {st['exposure']:.0%}")
     print(f"当前腿: {st['leg']}（{'银行等权' if st['leg']=='bank' else '风险动量Top'+str(args.top_n)}）")
+    if args.breaker and str(st.get("breaker", "")):
+        print(f"熔断标记: {st['breaker']}")
     print("=" * 56)
     print(f"{'代码':<12}{'名称':<10}{'权重':>8}")
     for sym, wt in pos.items():
@@ -130,7 +145,14 @@ def cmd_backtest(args: argparse.Namespace) -> int:
 
     for n in [int(x) for x in args.compare_n.split(",")]:
         cfg = Strategy1Config(top_n=n)
-        w, _ = generate_target_weights(close, volume, cfg=cfg, bank_symbols=banks)
+        if args.breaker:
+            w, _ = generate_target_weights_breaker(
+                close, volume, cfg=cfg, breaker=BreakerConfig(), bank_symbols=banks
+            )
+            tag = f"{STRATEGY_BREAKER_NAME}_top{n}"
+        else:
+            w, _ = generate_target_weights(close, volume, cfg=cfg, bank_symbols=banks)
+            tag = f"strategy1_top{n}"
         w_bt = w.loc[w.index >= pd.Timestamp(args.bt_start)]
         c_bt = close.loc[close.index >= pd.Timestamp(args.bt_start)]
         w_exec = w_bt.shift(1).fillna(0.0)
@@ -138,8 +160,77 @@ def cmd_backtest(args: argparse.Namespace) -> int:
         gross = (w_exec * rets).sum(axis=1)
         fee = w_exec.diff().abs().sum(axis=1).fillna(0.0) * (args.fee_bps / 10_000.0)
         net = gross - fee
-        print_stats(f"strategy1_top{n}", perf_stats(net))
+        print_stats(tag, perf_stats(net))
 
+    return 0
+
+
+def cmd_compare_breaker(args: argparse.Namespace) -> int:
+    """原版 vs 熔断版(A+B+C) 月收益与回撤对比。"""
+    import pandas as pd
+
+    cache = ROOT / "data_cache" / "strategy1"
+    close, volume, banks, perf_stats, print_stats = _panels(args.start, cache)
+    cfg = Strategy1Config(top_n=args.top_n)
+    br = BreakerConfig()  # 默认含单日-3%→50%
+
+    w0, _ = generate_target_weights(close, volume, cfg=cfg, bank_symbols=banks)
+    w1, st1 = generate_target_weights_breaker(
+        close, volume, cfg=cfg, breaker=br, bank_symbols=banks
+    )
+
+    def run_net(w):
+        rets = close.pct_change(fill_method=None).fillna(0.0)
+        we = w.shift(1).fillna(0.0)
+        return (we * rets).sum(axis=1) - we.diff().abs().sum(axis=1).fillna(0.0) * (
+            args.fee_bps / 10_000.0
+        )
+
+    s0 = run_net(w0).loc[args.bt_start : args.bt_end]
+    s1 = run_net(w1).loc[args.bt_start : args.bt_end]
+    p0, p1 = perf_stats(s0), perf_stats(s1)
+
+    print("=" * 72)
+    print(f"策略{STRATEGY_ID}｜{STRATEGY_NAME}  vs  {STRATEGY_BREAKER_NAME}")
+    print("熔断规则: A段回撤-8%→银行 | B:5日跑输银行3%→银行 | C:单日-3%→仓位50%")
+    print(f"区间: {args.bt_start} ~ {args.bt_end or '最新'} | top_n={args.top_n}")
+    print("=" * 72)
+    print(f"{'指标':<10}{'策略一':>12}{'策略一熔断版':>14}{'差额':>12}")
+    print(
+        f"{'累计收益':<10}{p0['total_return']:>+11.2%}{p1['total_return']:>+13.2%}"
+        f"{p1['total_return']-p0['total_return']:>+11.2%}"
+    )
+    print(
+        f"{'夏普':<10}{p0['sharpe']:>12.2f}{p1['sharpe']:>14.2f}"
+        f"{p1['sharpe']-p0['sharpe']:>+12.2f}"
+    )
+    print(
+        f"{'最大回撤':<10}{p0['max_drawdown']:>+11.2%}{p1['max_drawdown']:>+13.2%}"
+        f"{p1['max_drawdown']-p0['max_drawdown']:>+11.2%}"
+    )
+
+    print(
+        f"\n{'月份':<8}{'策略一':>9}{'熔断版':>9}{'Δ收益':>8}{'策略一DD':>9}{'熔断DD':>9}"
+    )
+    for m in sorted(set(s0.index.to_period("M")) | set(s1.index.to_period("M"))):
+        g0, g1 = s0.loc[str(m)], s1.loc[str(m)]
+        if len(g0) == 0 or len(g1) == 0:
+            continue
+        e0, e1 = (1 + g0).cumprod(), (1 + g1).cumprod()
+        print(
+            f"{str(m):<8}{e0.iloc[-1]-1:>+8.2%}{e1.iloc[-1]-1:>+8.2%}"
+            f"{(e1.iloc[-1]-1)-(e0.iloc[-1]-1):>+7.2%}"
+            f"{(e0/e0.cummax()-1).min():>+8.2%}{(e1/e1.cummax()-1).min():>+8.2%}"
+        )
+
+    hit = st1.loc[args.bt_start : args.bt_end]
+    hit = hit[hit["breaker"].astype(str).str.len() > 0]
+    print(
+        f"\n熔断触发: {len(hit)}天 | "
+        f"A={int(hit['breaker'].str.contains('seg_dd').sum())} | "
+        f"B={int(hit['breaker'].str.contains('underperf').sum())} | "
+        f"C={int(hit['breaker'].str.contains('day_loss').sum())}"
+    )
     return 0
 
 
@@ -317,6 +408,11 @@ def main() -> int:
     sig = sub.add_parser("signal", help="今日信号与持仓分布")
     sig.add_argument("--top-n", type=int, default=10)
     sig.add_argument("--start", default="2022-01-01")
+    sig.add_argument(
+        "--breaker",
+        action="store_true",
+        help="启用熔断 A+B+C（含单日-3%→仓位50%）",
+    )
     sig.set_defaults(func=cmd_signal)
 
     bt = sub.add_parser("backtest", help="近3年回测")
@@ -325,6 +421,11 @@ def main() -> int:
     bt.add_argument("--start", default="2022-01-01")
     bt.add_argument("--bt-start", default="2023-10-30")
     bt.add_argument("--fee-bps", type=float, default=5.0)
+    bt.add_argument(
+        "--breaker",
+        action="store_true",
+        help="启用熔断 A+B+C（含单日-3%→仓位50%）",
+    )
     bt.set_defaults(func=cmd_backtest)
 
     val = sub.add_parser("validate", help="近N月：前一日信号→次日验证成功率")
@@ -332,6 +433,14 @@ def main() -> int:
     val.add_argument("--top-n", type=int, default=10)
     val.add_argument("--start", default="2022-01-01")
     val.set_defaults(func=cmd_validate)
+
+    cmpb = sub.add_parser("compare-breaker", help="原版 vs 熔断版(A+B+C) 对比")
+    cmpb.add_argument("--top-n", type=int, default=10)
+    cmpb.add_argument("--start", default="2022-01-01")
+    cmpb.add_argument("--bt-start", default="2026-01-05")
+    cmpb.add_argument("--bt-end", default="2026-10-30")
+    cmpb.add_argument("--fee-bps", type=float, default=5.0)
+    cmpb.set_defaults(func=cmd_compare_breaker)
 
     args = parser.parse_args()
     return args.func(args)
