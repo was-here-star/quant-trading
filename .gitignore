@@ -20,9 +20,11 @@ wheels/
 .installed.cfg
 *.egg
 .venv/
+.venv-gm/
 venv/
 ENV/
 env/
+gm_test_out.txt
 
 # IDE
 .idea/
@@ -55,3 +57,5 @@ htmlcov/
 
 # Jupyter
 .ipynb_checkpoints/
+
+gm_backtest_out.txt

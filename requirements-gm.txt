@@ -1,0 +1,4 @@
+# 国盛掘金 / 掘金3 SDK 运行环境（建议使用独立 venv：.venv-gm）
+gm>=3.0.193
+python-dotenv>=1.0
+six>=1.16
