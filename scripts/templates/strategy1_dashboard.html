@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>策略看板</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: #0b1020;
+    color: #e6e9f2;
+    min-height: 100vh;
+    padding: 28px;
+    background-image:
+      radial-gradient(1200px 500px at 80% -10%, rgba(64,120,255,.12), transparent 60%),
+      radial-gradient(900px 400px at -10% 110%, rgba(0,200,180,.10), transparent 60%);
+  }
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  header h1 {
+    font-size: 24px; font-weight: 700; letter-spacing: 1px;
+    background: linear-gradient(90deg, #7fb4ff, #36cfc9);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header .meta { color: #8b93a7; font-size: 13px; }
+  header .meta b { color: #e6e9f2; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px;
+  }
+  .card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 22px 24px;
+    backdrop-filter: blur(10px);
+  }
+  .card h2 {
+    font-size: 15px; font-weight: 600; color: #cdd4e4;
+    margin-bottom: 4px; display: flex; align-items: center; gap: 8px;
+  }
+  .card h2::before {
+    content: ""; width: 4px; height: 14px; border-radius: 2px;
+    background: linear-gradient(180deg, #7fb4ff, #36cfc9);
+  }
+  .card .sub { font-size: 12px; color: #7c8499; margin-bottom: 16px; }
+
+  .col-3 { grid-column: span 3; }
+  .col-4 { grid-column: span 4; }
+  .col-5 { grid-column: span 5; }
+  .col-6 { grid-column: span 6; }
+  .col-8 { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 1100px) {
+    .col-3, .col-4, .col-5, .col-6, .col-8 { grid-column: span 12; }
+  }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .kpi-row.horizon-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .kpi-row.horizon-3 { grid-template-columns: 1fr; }
+  }
+  .kpi {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 12px; padding: 18px 16px;
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 88px;
+  }
+  .kpi.hero {
+    min-height: 120px; padding: 22px 20px;
+    background: rgba(255,255,255,.035);
+    align-items: flex-start;
+    text-align: left;
+  }
+  .kpi .label { font-size: 12px; color: #7c8499; margin-bottom: 8px; }
+  .kpi .value { font-size: 20px; font-weight: 700; }
+  .kpi.hero .label { font-size: 13px; margin-bottom: 10px; text-align: left; }
+  .kpi.hero .value { font-size: 36px; font-weight: 750; letter-spacing: 0.3px; text-align: left; }
+  .kpi.hero .hint { font-size: 11px; color: #7c8499; margin-top: 8px; text-align: left; }
+  .kpi-row.horizon-3 .kpi { text-align: left; align-items: flex-start; }
+
+  .ann-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  .ann-main { display: flex; flex-direction: column; gap: 6px; }
+  .ann-main .ann-label { font-size: 13px; color: #8b93a7; }
+  .ann-main .ann-value { font-size: 42px; font-weight: 750; letter-spacing: 0.5px; line-height: 1.1; }
+  .ann-main .ann-sub { font-size: 12px; color: #7c8499; }
+  .ann-side {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .ann-side .pill-stat {
+    min-width: 120px; padding: 12px 16px; border-radius: 12px;
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+  }
+  .ann-side .pill-stat .k { font-size: 11px; color: #7c8499; margin-bottom: 4px; }
+  .ann-side .pill-stat .v { font-size: 18px; font-weight: 700; }
+
+  .month-list { display: flex; flex-direction: column; gap: 18px; }
+  .month-row {
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.025);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .month-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .month-head .m-title { font-size: 15px; font-weight: 700; color: #e6e9f2; }
+  .month-head .m-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .month-head .m-ret { font-size: 16px; font-weight: 700; }
+  .month-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  .month-table th, .month-table td {
+    padding: 8px 6px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .month-table th { color: #7c8499; font-weight: 500; font-size: 12px; }
+  .month-table tr:last-child td { border-bottom: none; }
+  .month-table tr:hover td { background: rgba(255,255,255,.03); }
+  .year-ret-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .year-ret-table th, .year-ret-table td {
+    padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); text-align: left;
+  }
+  .year-ret-table th { color: #7c8499; font-weight: 500; font-size: 12px; }
+  .year-ret-table td.year { font-weight: 700; color: #e6e9f2; }
+  .year-ret-table td.ret { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .year-ret-table tr:hover td { background: rgba(255,255,255,.03); }
+
+  .temp-wrap { display: flex; flex-direction: column; align-items: center; }
+  .temp-value { font-size: 40px; font-weight: 700; margin-top: 6px; }
+  .temp-tag {
+    margin-top: 6px; padding: 4px 14px; border-radius: 999px; font-size: 13px;
+    border: 1px solid transparent;
+  }
+  .temp-scale { display: flex; justify-content: space-between; width: 240px; margin-top: 8px; font-size: 11px; color: #7c8499; }
+
+  .alloc-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    margin: 8px auto 0;
+  }
+  .donut {
+    width: 170px; height: 170px; border-radius: 50%; position: relative;
+    box-shadow: 0 0 30px rgba(54,207,201,.25);
+    flex-shrink: 0;
+  }
+  .donut::after {
+    content: ""; position: absolute; inset: 26px; border-radius: 50%; background: #121828;
+  }
+  .donut-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 2;
+  }
+  .donut-center .big { font-size: 22px; font-weight: 700; }
+  .donut-center .small { font-size: 11px; color: #8b93a7; }
+  .legend {
+    display: flex; flex-direction: column; gap: 12px;
+    width: min(260px, 100%);
+    margin: 0 auto;
+  }
+  .legend .item { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .legend .dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .legend .pct { margin-left: auto; font-weight: 700; font-size: 16px; }
+  .legend .item small { color: #8b93a7; font-size: 11px; margin-left: 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.06); }
+  th { color: #7c8499; font-weight: 500; font-size: 12px; }
+  tr:hover td { background: rgba(255,255,255,.03); }
+  .code {
+    font-family: "SF Mono", Consolas, monospace; font-weight: 600; color: #9fc2ff;
+    background: rgba(127,180,255,.1); padding: 2px 8px; border-radius: 6px; font-size: 12.5px;
+  }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .tag-bank { background: rgba(240,180,41,.14); color: #f0b429; }
+  .tag-risk { background: rgba(54,207,201,.14); color: #36cfc9; }
+  .tag-cash { background: rgba(139,147,167,.18); color: #aab2c5; }
+  .up { color: #ff5b5b; font-weight: 600; }
+  .down { color: #3ecf6e; font-weight: 600; }
+  .flat { color: #8b93a7; font-weight: 600; }
+
+  .dev-current { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .dev-current .val { font-size: 28px; font-weight: 700; }
+  .dev-current .zone { font-size: 13px; padding: 2px 10px; border-radius: 999px; }
+  .dev-panel {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .dev-axis-wrap {
+    width: 100%; display: flex; justify-content: center;
+  }
+  .dev-dual {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .dev-half {
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.02);
+    border-radius: 12px;
+    padding: 10px 8px 6px;
+  }
+  .dev-half-title {
+    font-size: 13px; font-weight: 600; color: #aab2c5;
+    padding: 2px 8px 8px; text-align: left;
+  }
+  .dev-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center;
+    max-width: 720px;
+  }
+  .dev-legend .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    color: #cdd4e4; white-space: nowrap;
+  }
+  .dev-legend .chip .k { color: #7c8499; }
+  .dev-legend .chip .v { font-weight: 600; color: #e6e9f2; }
+  .hint { font-size: 12px; color: #7c8499; margin-top: 10px; line-height: 1.55; text-align: center; }
+
+  .action {
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    padding: 14px 16px; border-radius: 12px;
+    background: rgba(54,207,201,.08); border: 1px solid rgba(54,207,201,.22);
+    font-size: 13.5px;
+  }
+  .action .pill {
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: rgba(54,207,201,.18); color: #36cfc9;
+  }
+  footer { margin-top: 22px; color: #6b7388; font-size: 11px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="page-title">策略看板</h1>
+  <div class="meta">
+    数据日期：<b id="asof">—</b>
+   　·　总仓位：<b id="hdr-exp" style="color:#36cfc9">—</b>
+   　·　调仓：<b id="hdr-rebal">月末 BME</b>
+  </div>
+</header>
+
+<div class="grid">
+
+  <div class="card col-12" id="horizon-kpi-wrap" style="display:none">
+    <div class="kpi-row horizon-3">
+      <div class="kpi hero">
+        <div class="label" id="hz-total-label">10年总收益率</div>
+        <div class="value" id="hz-total">—</div>
+        <div class="hint" id="hz-total-hint">扣费后累计</div>
+      </div>
+      <div class="kpi hero">
+        <div class="label" id="hz-ann-label">10年平均年化</div>
+        <div class="value" id="hz-ann">—</div>
+        <div class="hint">交易日×252 折年</div>
+      </div>
+      <div class="kpi hero">
+        <div class="label" id="hz-mdd-label">10年最大回撤</div>
+        <div class="value" id="hz-mdd">—</div>
+        <div class="hint">净值相对历史高点最大跌幅</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card col-12" id="ann-card-wrap">
+    <h2 id="ann-title">近12个月年化收益率</h2>
+    <div class="sub" id="ann-sub">近12个自然月真实收益折年（交易日×252）；旁注近1年累计与 YTD 累计</div>
+    <div class="ann-card">
+      <div class="ann-main">
+        <div class="ann-value" id="ann-value">—</div>
+        <div class="ann-sub" id="ann-note">扣费后</div>
+      </div>
+      <div class="ann-side">
+        <div class="pill-stat">
+          <div class="k" id="ann-side-k1">近1年累计</div>
+          <div class="v" id="ann-1y">—</div>
+        </div>
+        <div class="pill-stat">
+          <div class="k">YTD 累计</div>
+          <div class="v" id="ann-ytd">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card col-12" id="kpi-card-wrap">
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="label">持仓腿</div>
+        <div class="value" id="kpi-leg">—</div>
+      </div>
+      <div class="kpi">
+        <div class="label">比价 20 日趋势</div>
+        <div class="value" id="kpi-trend">—</div>
+      </div>
+      <div class="kpi">
+        <div class="label">今日实时收益率</div>
+        <div class="value" id="kpi-today">—</div>
+      </div>
+      <div class="kpi">
+        <div class="label">本月收益率</div>
+        <div class="value" id="kpi-mtd">—</div>
+      </div>
+      <div class="kpi">
+        <div class="label">最近调仓日</div>
+        <div class="value" id="kpi-rebal" style="font-size:18px">—</div>
+      </div>
+    </div>
+    <div class="action" style="margin-top:16px">
+      <span class="pill" id="action-pill">执行建议</span>
+      <span id="action-text">加载中…</span>
+    </div>
+  </div>
+
+  <div class="card col-6" id="temp-card-wrap">
+    <h2>市场气温</h2>
+    <div class="sub">偏低=偏冷偏银行，偏高=过热偏风险</div>
+    <div class="temp-wrap">
+      <svg id="temp-gauge" width="240" height="150" viewBox="0 0 200 125"></svg>
+      <div class="temp-value" id="temp-value">—</div>
+      <div class="temp-tag" id="temp-tag">—</div>
+      <div class="temp-scale"><span>0 冰点</span><span>50 中性</span><span>100 过热</span></div>
+    </div>
+  </div>
+
+  <div class="card col-6" id="alloc-card-wrap">
+    <h2>策略持仓配置</h2>
+    <div class="sub">银行腿 ↔ 风险腿切换；|z|&gt;2 时总仓位减半</div>
+    <div class="alloc-wrap">
+      <div class="donut" id="donut">
+        <div class="donut-center">
+          <div class="big" id="donut-exp">—</div>
+          <div class="small">总仓位</div>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <div class="card col-12" id="hold-card-wrap">
+    <h2>具体持仓明细</h2>
+    <div class="sub" id="hold-sub">按仓位权重降序</div>
+    <table>
+      <thead>
+        <tr>
+          <th>股票代码</th>
+          <th>名称</th>
+          <th>腿别</th>
+          <th>仓位占比</th>
+          <th>最新价</th>
+          <th>日涨跌</th>
+          <th>策略备注</th>
+        </tr>
+      </thead>
+      <tbody id="hold-body"></tbody>
+    </table>
+  </div>
+
+  <div class="card col-12">
+    <h2>风险水位提示</h2>
+    <div class="sub" id="dev-sub">近3年 z 水位时序 · 横轴时间 · 红区=风险股估值偏高(超买) · 绿区=估值偏低(超卖)</div>
+    <div class="dev-current">
+      <span class="val" id="dev-val">—</span>
+      <span class="zone" id="dev-zone">—</span>
+    </div>
+    <div class="dev-panel">
+      <div class="dev-axis-wrap" id="dev-single-wrap">
+        <svg id="dev-chart" width="100%" height="340" viewBox="0 0 960 340" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <div class="dev-dual" id="dev-dual-wrap" style="display:none">
+        <!-- 长周期按约5年一段动态生成；近一年双图也复用此容器 -->
+      </div>
+      <div class="dev-legend">
+        <span class="chip"><span class="k">红标</span><span class="v">超买点</span></span>
+        <span class="chip"><span class="k">绿标</span><span class="v">超卖点</span></span>
+        <span class="chip"><span class="k">色带</span><span class="v">超买 / 超卖</span></span>
+        <span class="chip"><span class="k">当前</span><span class="v" id="dev-side-z">—</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card col-12">
+    <h2 id="year-title">近一年收益率</h2>
+    <div class="sub" id="year-sub">近12个月逐月持仓分布与月收益（月初实际持仓 · 扣费后）</div>
+    <div class="ann-card" id="year-summary-wrap" style="margin-bottom:16px">
+      <div class="ann-main">
+        <div class="ann-label" id="year-label">近一年累计</div>
+        <div class="ann-value" id="year-ret" style="font-size:32px">—</div>
+        <div class="ann-sub" id="year-ann-sub">旁注为近一年年化</div>
+      </div>
+      <div class="ann-side">
+        <div class="pill-stat">
+          <div class="k" id="year-ann-k">近1年年化</div>
+          <div class="v" id="year-ann">—</div>
+        </div>
+        <div class="pill-stat" id="year-1y-pill" style="display:none">
+          <div class="k">近1年累计</div>
+          <div class="v" id="year-1y-ret">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="month-list" id="month-list"></div>
+  </div>
+
+</div>
+
+<footer>
+  <span id="page-footer">策略看板</span>（月频 BME）· 行情来源 yfinance 日线 · 非实盘成交回报 · 仅供研究参考
+</footer>
+
+<script>
+const DATA = __DASHBOARD_DATA__;
+// 仅「指定红日常/月末BME」静态页：实时服务在跑时可跳转
+// 怎么输 / 10年期 / 近一年日频回测等独立看板绝不跳转
+(function () {
+  if (location.protocol === "http:" || location.protocol === "https:") return;
+  if (!DATA || DATA.variant !== "zhidhong") return;
+  if (DATA.horizon_years) return;
+  if (DATA.rebalance && DATA.rebalance !== "BME" && DATA.rebalance !== "BM") return;
+  if (DATA.live_redirect === false) return;
+  const LIVE = "http://127.0.0.1:18765/";
+  fetch(LIVE + "ping", { mode: "cors", cache: "no-store" })
+    .then((r) => { if (r.ok) location.replace(LIVE); })
+    .catch(() => {});
+})();
+
+function pct(x, digits=1) {
+  if (x == null || Number.isNaN(x)) return "—";
+  return (x * 100).toFixed(digits) + "%";
+}
+function signedPct(x, digits=2) {
+  if (x == null || Number.isNaN(x)) return "—";
+  const v = (x * 100).toFixed(digits) + "%";
+  return x > 0 ? "+" + v : v;
+}
+function money(x) {
+  if (x == null || Number.isNaN(x)) return "—";
+  return Number(x).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function tempMeta(temp) {
+  if (temp < 30) return { color: "#3ecf6e", tag: "偏冷 · 偏向银行腿", bg: "rgba(62,207,110,.15)", bd: "rgba(62,207,110,.35)" };
+  if (temp < 45) return { color: "#7fe0a8", tag: "偏凉 · 防守为主", bg: "rgba(127,224,168,.12)", bd: "rgba(127,224,168,.3)" };
+  if (temp < 55) return { color: "#f0b429", tag: "中性 · 观察切换", bg: "rgba(240,180,41,.15)", bd: "rgba(240,180,41,.35)" };
+  if (temp < 70) return { color: "#f0b429", tag: "偏暖 · 结构性风险偏好", bg: "rgba(240,180,41,.15)", bd: "rgba(240,180,41,.35)" };
+  return { color: "#ff5b5b", tag: "过热 · 风险腿拥挤", bg: "rgba(255,91,91,.15)", bd: "rgba(255,91,91,.35)" };
+}
+
+function zMeta(z) {
+  if (z <= -2) return { label: "极度偏低 · 仓位减半区", color: "#3ecf6e", bg: "rgba(62,207,110,.14)" };
+  if (z < -0.5) return { label: "偏低 · 银行腿友好", color: "#36cfc9", bg: "rgba(54,207,201,.12)" };
+  if (z <= 0.5) return { label: "中性区", color: "#f0b429", bg: "rgba(240,180,41,.12)" };
+  if (z < 2) return { label: "偏高 · 风险腿友好", color: "#ff9b9b", bg: "rgba(255,155,155,.12)" };
+  return { label: "极度偏高 · 仓位减半区", color: "#ff5b5b", bg: "rgba(255,91,91,.14)" };
+}
+
+function renderGauge(temp) {
+  const svg = document.getElementById("temp-gauge");
+  const arcLen = Math.PI * 80; // semicircle approx for dash math like sample
+  // Use same geometry as sample: path length ~251.3 for full semicircle-ish path
+  const full = 251.3;
+  const fill = Math.max(0, Math.min(1, temp / 100)) * full;
+  // needle angle: 180° sweep from left(180°) to right(0°); temp 0→180°, 100→0°
+  const angle = Math.PI - (temp / 100) * Math.PI; // radians
+  const cx = 100, cy = 105, r = 62;
+  const x2 = cx + r * Math.cos(angle);
+  const y2 = cy - r * Math.sin(angle);
+  svg.innerHTML = `
+    <path d="M 20 105 A 80 80 0 0 1 100 25" fill="none" stroke="#2e8b57" stroke-width="14"
+          stroke-dasharray="50.3 251.3" stroke-dashoffset="0" stroke-linecap="butt"/>
+    <path d="M 20 105 A 80 80 0 0 1 180 105" fill="none" stroke="#d9a429" stroke-width="14"
+          stroke-dasharray="100.5 251.3" stroke-dashoffset="-50.3"/>
+    <path d="M 20 105 A 80 80 0 0 1 180 105" fill="none" stroke="#d9534f" stroke-width="14"
+          stroke-dasharray="100.5 251.3" stroke-dashoffset="-150.8"/>
+    <path d="M 20 105 A 80 80 0 0 1 180 105" fill="none" stroke="#ffffff" stroke-width="14"
+          stroke-dasharray="${fill.toFixed(1)} 251.3" opacity="0.85" style="filter: drop-shadow(0 0 6px rgba(255,255,255,.6))"/>
+    <line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="6" fill="#ffffff"/>
+  `;
+}
+
+function findZExtrema(series) {
+  // 按月取极值，再找局部峰/谷；返回全部高位/低位（供标注月份）
+  const monthLow = new Map();
+  const monthHigh = new Map();
+  series.forEach((p, i) => {
+    const m = String(p.d).slice(0, 7);
+    const lo = monthLow.get(m);
+    const hi = monthHigh.get(m);
+    if (!lo || p.z < lo.z) monthLow.set(m, { i, z: p.z, d: p.d, m });
+    if (!hi || p.z > hi.z) monthHigh.set(m, { i, z: p.z, d: p.d, m });
+  });
+  const monthsLo = Array.from(monthLow.values()).sort((a, b) => a.i - b.i);
+  const monthsHi = Array.from(monthHigh.values()).sort((a, b) => a.i - b.i);
+
+  const monthKey = (m) => parseInt(m.slice(0, 4), 10) * 12 + parseInt(m.slice(5), 10);
+  const dedupeNear = (arr, preferLower) => {
+    arr.sort((a, b) => a.i - b.i);
+    const out = [];
+    arr.forEach(t => {
+      const last = out[out.length - 1];
+      if (!last) { out.push(t); return; }
+      const gap = Math.abs(monthKey(t.m) - monthKey(last.m));
+      if (gap < 2) {
+        const better = preferLower ? (t.z < last.z) : (t.z > last.z);
+        if (better) out[out.length - 1] = t;
+      } else {
+        out.push(t);
+      }
+    });
+    return out;
+  };
+
+  let troughs = [];
+  for (let k = 0; k < monthsLo.length; k++) {
+    const prev = monthsLo[k - 1], next = monthsLo[k + 1], cur = monthsLo[k];
+    const isLocal = (!prev || cur.z <= prev.z) && (!next || cur.z < next.z);
+    if (isLocal && cur.z <= -0.8) troughs.push(cur);
+  }
+  if (!troughs.length && monthsLo.length) {
+    troughs = monthsLo.slice().sort((a, b) => a.z - b.z).slice(0, 4);
+  }
+
+  let peaks = [];
+  for (let k = 0; k < monthsHi.length; k++) {
+    const prev = monthsHi[k - 1], next = monthsHi[k + 1], cur = monthsHi[k];
+    const isLocal = (!prev || cur.z >= prev.z) && (!next || cur.z > next.z);
+    if (isLocal && cur.z >= 0.8) peaks.push(cur);
+  }
+  if (!peaks.length && monthsHi.length) {
+    peaks = monthsHi.slice().sort((a, b) => b.z - a.z).slice(0, 4);
+  }
+
+  const lows = dedupeNear(troughs, true).sort((a, b) => a.i - b.i);
+  const highs = dedupeNear(peaks, false).sort((a, b) => a.i - b.i);
+  // 核心：进入 ±2 区，不足则各取极值最深/最高的前 3 个
+  let coreLows = lows.filter(t => t.z <= -2);
+  if (coreLows.length < 2) {
+    coreLows = lows.slice().sort((a, b) => a.z - b.z).slice(0, 3);
+  }
+  let coreHighs = highs.filter(t => t.z >= 2);
+  if (coreHighs.length < 2) {
+    coreHighs = highs.slice().sort((a, b) => b.z - a.z).slice(0, 3);
+  }
+  return {
+    lows,
+    highs,
+    coreLows: coreLows.sort((a, b) => a.i - b.i),
+    coreHighs: coreHighs.sort((a, b) => a.i - b.i),
+  };
+}
+
+function drawDevPanel(svg, series, opts = {}) {
+  const {
+    showCurrent = false,
+    currentZ = null,
+    compact = false,
+    labelDay = false, // true=点位标到日；false=只标月份
+  } = opts;
+  if (!svg) return;
+
+  const W = compact ? 480 : 960;
+  const H = compact ? 320 : 360;
+  const pad = compact
+    ? { l: 40, r: 14, t: 36, b: 42 }
+    : { l: 54, r: 24, t: 36, b: 52 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+  const zMin = -3, zMax = 3;
+  const yOf = (zv) => pad.t + ((zMax - Math.max(zMin, Math.min(zMax, zv))) / (zMax - zMin)) * plotH;
+  const n = series.length;
+  const xOf = (i) => pad.l + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const band = (z1, z2, fill) => {
+    const y1 = yOf(z1), y2 = yOf(z2);
+    const top = Math.min(y1, y2), h = Math.abs(y2 - y1);
+    return `<rect x="${pad.l}" y="${top}" width="${plotW}" height="${h}" fill="${fill}"/>`;
+  };
+
+  const yTicks = [2, 1, 0, -1, -2];
+  const yTickSvg = yTicks.map(t => {
+    const yy = yOf(t);
+    const label = (t > 0 ? "+" : "") + t.toFixed(0);
+    return `
+      <line x1="${pad.l}" y1="${yy}" x2="${pad.l + plotW}" y2="${yy}" stroke="rgba(255,255,255,.06)"/>
+      <text x="${pad.l - 8}" y="${yy + 4}" font-size="${compact ? 10 : 12}" fill="#8b93a7" text-anchor="end">${label}</text>
+    `;
+  }).join("");
+
+  const { coreLows, coreHighs } = findZExtrema(series);
+  const markDateText = (t) => {
+    if (labelDay) {
+      const d = String(t.d || t.m);
+      const mm = parseInt(d.slice(5, 7), 10);
+      const dd = parseInt(d.slice(8, 10), 10);
+      if (!Number.isNaN(mm) && !Number.isNaN(dd)) return `${mm}月${dd}日`;
+    }
+    return `${parseInt(String(t.m).slice(5), 10)}月`;
+  };
+
+  // 点右侧标月份/日期 + σ；年份放到时间轴
+  const markSvg = [
+    ...coreLows.map(t => {
+      const x = xOf(t.i), yy = yOf(t.z);
+      const tx = Math.min(x + 8, pad.l + plotW - 2);
+      return `
+        <line x1="${x}" y1="${yy}" x2="${x}" y2="${pad.t + plotH}" stroke="rgba(62,207,110,.28)" stroke-width="1" stroke-dasharray="3 3"/>
+        <circle cx="${x}" cy="${yy}" r="5" fill="#3ecf6e" stroke="#0b1020" stroke-width="1.5"/>
+        <text x="${tx}" y="${yy - 2}" font-size="11" fill="#3ecf6e" text-anchor="start" font-weight="700">${markDateText(t)}</text>
+        <text x="${tx}" y="${yy + 12}" font-size="10" fill="#7fe0a8" text-anchor="start">${t.z.toFixed(1)}σ</text>
+      `;
+    }),
+    ...coreHighs.map(t => {
+      const x = xOf(t.i), yy = yOf(t.z);
+      const tx = Math.min(x + 8, pad.l + plotW - 2);
+      return `
+        <line x1="${x}" y1="${yy}" x2="${x}" y2="${pad.t + plotH}" stroke="rgba(255,91,91,.28)" stroke-width="1" stroke-dasharray="3 3"/>
+        <circle cx="${x}" cy="${yy}" r="5" fill="#ff5b5b" stroke="#0b1020" stroke-width="1.5"/>
+        <text x="${tx}" y="${yy - 2}" font-size="11" fill="#ff5b5b" text-anchor="start" font-weight="700">${markDateText(t)}</text>
+        <text x="${tx}" y="${yy + 12}" font-size="10" fill="#ff9b9b" text-anchor="start">${t.z >= 0 ? "+" : ""}${t.z.toFixed(1)}σ</text>
+      `;
+    }),
+  ].join("");
+
+  // 时间轴：按年标注
+  const yearMarks = [];
+  const seenYear = new Set();
+  series.forEach((p, i) => {
+    const y = String(p.d).slice(0, 4);
+    if (seenYear.has(y)) return;
+    seenYear.add(y);
+    // 用该年首个点作为刻度位置
+    yearMarks.push({ i, label: y });
+  });
+  // 确保末日年份也有（若最后一年只有一个点已在内）
+  if (n > 1) {
+    const lastY = String(series[n - 1].d).slice(0, 4);
+    if (!yearMarks.some(m => m.label === lastY)) {
+      yearMarks.push({ i: n - 1, label: lastY });
+    }
+  }
+  const xTickSvg = yearMarks.map(m => {
+    const x = xOf(m.i);
+    return `
+      <line x1="${x}" y1="${pad.t + plotH}" x2="${x}" y2="${pad.t + plotH + 6}" stroke="#8b93a7"/>
+      <text x="${x}" y="${pad.t + plotH + 22}" font-size="${compact ? 10 : 12}" fill="#aab2c5" text-anchor="middle" font-weight="600">${m.label}</text>
+    `;
+  }).join("");
+
+  const y0 = yOf(0);
+  let line = "";
+  series.forEach((p, i) => {
+    line += `${i === 0 ? "M" : "L"} ${xOf(i).toFixed(1)} ${yOf(p.z).toFixed(1)} `;
+  });
+  let area = `M ${xOf(0).toFixed(1)} ${y0.toFixed(1)} `;
+  series.forEach((p, i) => { area += `L ${xOf(i).toFixed(1)} ${yOf(p.z).toFixed(1)} `; });
+  area += `L ${xOf(n - 1).toFixed(1)} ${y0.toFixed(1)} Z`;
+
+  let currentSvg = "";
+  if (showCurrent && n) {
+    const lastX = xOf(n - 1);
+    const lastY = yOf(series[n - 1].z);
+    const zTxt = currentZ == null
+      ? ""
+      : ((currentZ >= 0 ? "+" : "") + Number(currentZ).toFixed(2) + "σ");
+    currentSvg = `
+      <circle cx="${lastX}" cy="${lastY}" r="3.5" fill="#36cfc9" stroke="#0b1020" stroke-width="1.2"/>
+      ${zTxt ? `<text x="${Math.min(lastX + 8, pad.l + plotW - 4)}" y="${lastY - 8}" font-size="11" fill="#36cfc9" font-weight="700">当前 ${zTxt}</text>` : ""}
+    `;
+  }
+
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("height", String(H));
+  svg.innerHTML = `
+    ${band(3, 2, "rgba(217,83,79,.20)")}
+    ${band(2, 0.5, "rgba(217,83,79,.08)")}
+    ${band(0.5, -0.5, "rgba(255,255,255,.03)")}
+    ${band(-0.5, -2, "rgba(46,139,87,.08)")}
+    ${band(-2, -3, "rgba(46,139,87,.20)")}
+    ${yTickSvg}
+    <line x1="${pad.l}" y1="${y0}" x2="${pad.l + plotW}" y2="${y0}" stroke="#ffffff" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
+    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t + plotH}" stroke="#8b93a7" stroke-width="1"/>
+    <line x1="${pad.l}" y1="${pad.t + plotH}" x2="${pad.l + plotW}" y2="${pad.t + plotH}" stroke="#8b93a7" stroke-width="1"/>
+    <path d="${area}" fill="rgba(54,207,201,.08)"/>
+    <path d="${line}" fill="none" stroke="#36cfc9" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/>
+    ${markSvg}
+    ${xTickSvg}
+    ${currentSvg}
+  `;
+}
+
+function filterHistYears(series, years) {
+  if (!series.length || !years) return series.slice();
+  const end = new Date(series[series.length - 1].d);
+  const start = new Date(end);
+  start.setFullYear(start.getFullYear() - years);
+  const startStr = start.toISOString().slice(0, 10);
+  const out = series.filter(p => String(p.d) >= startStr);
+  return out.length ? out : series.slice();
+}
+
+/** 长周期水位：按约 segmentYears 年一段，从远到近切段（10年→2段，20年→4段）。 */
+function splitHistBySegmentYears(series, years, segmentYears = 5) {
+  if (!series.length) return [];
+  const nSeg = Math.max(1, Math.round(Number(years) / segmentYears));
+  const end = new Date(series[series.length - 1].d);
+  const cuts = [];
+  for (let k = nSeg - 1; k >= 1; k -= 1) {
+    const t = new Date(end);
+    t.setFullYear(t.getFullYear() - k * segmentYears);
+    cuts.push(t.toISOString().slice(0, 10));
+  }
+  const segments = [];
+  let rest = series.slice();
+  for (const cut of cuts) {
+    const left = rest.filter(p => String(p.d) < cut);
+    rest = rest.filter(p => String(p.d) >= cut);
+    if (left.length) segments.push(left);
+  }
+  if (rest.length) segments.push(rest);
+  // 兜底：切空时按点数均分
+  if (segments.length < 2 && series.length > 40) {
+    const out = [];
+    const step = Math.ceil(series.length / nSeg);
+    for (let i = 0; i < nSeg; i += 1) {
+      const part = series.slice(i * step, i === nSeg - 1 ? series.length : (i + 1) * step);
+      if (part.length) out.push(part);
+    }
+    return out;
+  }
+  return segments;
+}
+
+function ensureDevPanels(n) {
+  const wrap = document.getElementById("dev-dual-wrap");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  for (let i = 0; i < n; i += 1) {
+    const half = document.createElement("div");
+    half.className = "dev-half";
+    half.innerHTML = `
+      <div class="dev-half-title" id="dev-title-${i + 1}"></div>
+      <svg id="dev-chart-${i + 1}" width="100%" height="320" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid meet"></svg>
+    `;
+    wrap.appendChild(half);
+  }
+}
+
+function segmentLabel(idx, nSeg, seg) {
+  const span = `${String(seg[0].d).slice(0, 7)} → ${String(seg[seg.length - 1].d).slice(0, 7)}`;
+  if (nSeg === 2) return (idx === 0 ? "前5年  " : "近5年  ") + span;
+  if (idx === nSeg - 1) return `近5年  ${span}`;
+  if (idx === 0) return `最早5年  ${span}`;
+  return `第${idx + 1}段  ${span}`;
+}
+
+function renderDev(z, hist, years, opts = {}) {
+  const zm = zMeta(z);
+  const zTxt = (z >= 0 ? "+" : "") + z.toFixed(2) + "σ";
+  document.getElementById("dev-val").textContent = zTxt;
+  document.getElementById("dev-val").style.color = zm.color;
+  const zone = document.getElementById("dev-zone");
+  zone.textContent = zm.label;
+  zone.style.color = zm.color;
+  zone.style.background = zm.bg;
+  const sideZ = document.getElementById("dev-side-z");
+  sideZ.textContent = zTxt;
+  sideZ.style.color = zm.color;
+
+  const series = (hist && hist.length) ? hist.slice() : [{ d: "now", z }];
+  const show1yExtra = !!opts.zPanel1y;
+  const useLongSplit = !!(years && years >= 10 && series.length > 40);
+  const singleWrap = document.getElementById("dev-single-wrap");
+  const dualWrap = document.getElementById("dev-dual-wrap");
+
+  if (useLongSplit) {
+    const segments = splitHistBySegmentYears(series, years, 5);
+    const nSeg = segments.length;
+    if (singleWrap) singleWrap.style.display = "none";
+    if (dualWrap) dualWrap.style.display = "grid";
+    ensureDevPanels(nSeg);
+    document.getElementById("dev-sub").textContent =
+      `近${years}年拆成${nSeg}段各约5年 · 红标=超买点 · 绿标=超卖点（优先 |z|≥2）`;
+
+    segments.forEach((seg, i) => {
+      const title = document.getElementById(`dev-title-${i + 1}`);
+      if (title && seg.length) title.textContent = segmentLabel(i, nSeg, seg);
+      drawDevPanel(document.getElementById(`dev-chart-${i + 1}`), seg, {
+        compact: false,
+        showCurrent: i === nSeg - 1,
+        currentZ: i === nSeg - 1 ? z : null,
+      });
+    });
+  } else if (show1yExtra) {
+    // 近一年版：上=近N年上下文，下=近一年放大
+    if (singleWrap) singleWrap.style.display = "none";
+    if (dualWrap) dualWrap.style.display = "grid";
+    ensureDevPanels(2);
+    const ctxYears = years || 3;
+    const ctxSeries = filterHistYears(series, ctxYears);
+    const y1Series = filterHistYears(series, 1);
+    document.getElementById("dev-sub").textContent =
+      `上图近${ctxYears}年上下文 · 下图近1年放大 · 红标=超买点 · 绿标=超卖点（优先 |z|≥2）`;
+    const t1 = document.getElementById("dev-title-1");
+    const t2 = document.getElementById("dev-title-2");
+    if (t1 && ctxSeries.length) {
+      t1.textContent = `近${ctxYears}年  ${String(ctxSeries[0].d).slice(0, 7)} → ${String(ctxSeries[ctxSeries.length - 1].d).slice(0, 7)}`;
+    }
+    if (t2 && y1Series.length) {
+      t2.textContent = `近1年  ${String(y1Series[0].d).slice(0, 7)} → ${String(y1Series[y1Series.length - 1].d).slice(0, 7)}`;
+    }
+    drawDevPanel(document.getElementById("dev-chart-1"), ctxSeries, { compact: false, showCurrent: false });
+    drawDevPanel(document.getElementById("dev-chart-2"), y1Series, {
+      compact: false,
+      showCurrent: true,
+      currentZ: z,
+      labelDay: true, // 近一年图高低点标到日
+    });
+  } else {
+    if (singleWrap) singleWrap.style.display = "";
+    if (dualWrap) dualWrap.style.display = "none";
+    document.getElementById("dev-sub").textContent =
+      `近${years || 3}年 z 水位时序 · 红标=超买点 · 绿标=超卖点（优先 |z|≥2）`;
+    drawDevPanel(document.getElementById("dev-chart"), series, {
+      compact: false,
+      showCurrent: true,
+      currentZ: z,
+    });
+  }
+}
+
+function render(d) {
+  // 数据日期：优先完整时分秒；若只有交易日则拼上生成时间的时分秒
+  let asofText = d.generated_at || d.asof || "—";
+  if (d.asof && d.generated_at && String(d.generated_at).length >= 19) {
+    asofText = d.generated_at; // YYYY-MM-DD HH:MM:SS
+  } else if (d.asof && String(d.asof).length === 10 && d.generated_at) {
+    const t = String(d.generated_at).slice(11);
+    asofText = t ? `${d.asof} ${t}` : d.asof;
+  }
+  const strategyTitle = (d.strategy || "策略") + "看板";
+  document.title = strategyTitle;
+  const pageTitle = document.getElementById("page-title");
+  if (pageTitle) pageTitle.textContent = strategyTitle;
+  const pageFooter = document.getElementById("page-footer");
+  if (pageFooter) pageFooter.textContent = strategyTitle;
+  const annNote = document.getElementById("ann-note");
+  if (annNote) {
+    const rb = d.rebalance || "BME";
+    const rbTxt = rb === "D" ? "日频调仓" : (rb === "BME" || rb === "BM" ? "月末 BME" : rb);
+    annNote.textContent = `${d.strategy || "策略"} · ${rbTxt} · 扣费后`;
+  }
+
+  // 长周期（如10年期）看板：顶部三卡；不展示原版 KPI / 气温 / 配置 / 持仓明细
+  const isHorizon = !!d.horizon_years;
+  const hzWrap = document.getElementById("horizon-kpi-wrap");
+  const annWrap = document.getElementById("ann-card-wrap");
+  const kpiWrap = document.getElementById("kpi-card-wrap");
+  const tempWrap = document.getElementById("temp-card-wrap");
+  const allocWrap = document.getElementById("alloc-card-wrap");
+  const holdWrap = document.getElementById("hold-card-wrap");
+  if (hzWrap) hzWrap.style.display = isHorizon ? "" : "none";
+  if (annWrap) annWrap.style.display = isHorizon ? "none" : "";
+  if (kpiWrap) kpiWrap.style.display = isHorizon ? "none" : "";
+  if (tempWrap) tempWrap.style.display = isHorizon ? "none" : "";
+  if (allocWrap) allocWrap.style.display = isHorizon ? "none" : "";
+  if (holdWrap) holdWrap.style.display = isHorizon ? "none" : "";
+
+  document.getElementById("asof").textContent = asofText;
+  document.getElementById("hdr-exp").textContent = pct(d.exposure, 0);
+  const hdrRebal = document.getElementById("hdr-rebal");
+  if (hdrRebal) {
+    const rb = d.rebalance || "BME";
+    hdrRebal.textContent = rb === "D" ? "日频 D（长周期回测口径）"
+      : (rb === "BME" || rb === "BM" ? "月末 BME" : rb);
+  }
+
+  if (isHorizon) {
+    const y = d.horizon_years;
+    const setHz = (id, val, invert = false) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = signedPct(val, 1);
+      const good = invert ? (val != null && val >= -1e-12) : (val != null && !Number.isNaN(val) && val >= 0);
+      const bad = invert ? (val != null && val < 0) : (val != null && !Number.isNaN(val) && val < 0);
+      el.style.color = (val == null || Number.isNaN(val)) ? "#e6e9f2" : (bad ? "#3ecf6e" : (good ? "#ff5b5b" : "#e6e9f2"));
+    };
+    const tl = document.getElementById("hz-total-label");
+    const al = document.getElementById("hz-ann-label");
+    const ml = document.getElementById("hz-mdd-label");
+    if (tl) tl.textContent = `${y}年总收益率`;
+    if (al) al.textContent = `${y}年平均年化`;
+    if (ml) ml.textContent = `${y}年最大回撤`;
+    const hint = document.getElementById("hz-total-hint");
+    if (hint) hint.textContent =
+      `区间 ${d.horizon_start || "—"} → ${d.asof} · 日频调仓回测 · 扣费后`;
+    setHz("hz-total", d.return_horizon);
+    setHz("hz-ann", d.ann_return_horizon);
+    // 回撤为负值：跌得越多越红（风险），用 invert=false 仍会把负值标绿；改为回撤专用着色
+    const mddEl = document.getElementById("hz-mdd");
+    if (mddEl) {
+      mddEl.textContent = signedPct(d.max_drawdown_horizon, 1);
+      mddEl.style.color = (d.max_drawdown_horizon == null || Number.isNaN(d.max_drawdown_horizon))
+        ? "#e6e9f2"
+        : "#3ecf6e";
+    }
+  } else {
+    // 主指标：近12个月真实年化（不再用当年至今折年）
+    const ann = d.ann_return_1y;
+    const annEl = document.getElementById("ann-value");
+    if (annEl) {
+      annEl.textContent = signedPct(ann, 1);
+      annEl.style.color = (ann == null || Number.isNaN(ann)) ? "#e6e9f2" : (ann >= 0 ? "#ff5b5b" : "#3ecf6e");
+    }
+    const a1 = document.getElementById("ann-1y");
+    if (a1) {
+      a1.textContent = signedPct(d.return_1y, 1);
+      a1.style.color = (d.return_1y == null || Number.isNaN(d.return_1y)) ? "#e6e9f2" : (d.return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+    }
+    const ay = document.getElementById("ann-ytd");
+    if (ay) {
+      ay.textContent = signedPct(d.ytd_return, 1);
+      ay.style.color = (d.ytd_return == null || Number.isNaN(d.ytd_return)) ? "#e6e9f2" : (d.ytd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+    }
+  }
+
+  const legName = d.leg === "bank"
+    ? "银行腿"
+    : (d.leg === "risk_etf" ? "风险ETF"
+      : (d.leg === "blend" ? "风险+银行配比" : "风险腿"));
+  document.getElementById("kpi-leg").textContent = legName;
+  document.getElementById("kpi-leg").style.color =
+    d.leg === "bank" ? "#f0b429" : (d.leg === "blend" ? "#f0b429" : "#36cfc9");
+
+  document.getElementById("kpi-trend").textContent = signedPct(d.trend, 2);
+  document.getElementById("kpi-trend").style.color = d.trend > 0 ? "#ff5b5b" : "#3ecf6e";
+
+  document.getElementById("kpi-rebal").textContent = d.last_rebal;
+
+  const todayEl = document.getElementById("kpi-today");
+  todayEl.textContent = signedPct(d.today_return, 2);
+  todayEl.style.color = (d.today_return == null || Number.isNaN(d.today_return))
+    ? "#e6e9f2"
+    : (d.today_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+
+  const mtdEl = document.getElementById("kpi-mtd");
+  mtdEl.textContent = signedPct(d.mtd_return, 2);
+  mtdEl.style.color = (d.mtd_return == null || Number.isNaN(d.mtd_return))
+    ? "#e6e9f2"
+    : (d.mtd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+
+  // action
+  const action = document.getElementById("action-text");
+  const liveRisk = (d.variant === "zenmeshu" && d.z != null)
+    ? Math.max(0, Math.min(1, (2 - Number(d.z)) / 4))
+    : null;
+  if (d.alert) {
+    document.getElementById("action-pill").textContent = "风险提醒";
+    document.getElementById("action-pill").style.background = "rgba(255,91,91,.18)";
+    document.getElementById("action-pill").style.color = "#ff5b5b";
+    const picks = d.risk_etf_picks ? ` 候选：${d.risk_etf_picks}` : "";
+    const mix = liveRisk == null ? "" :
+      ` 即时目标约 风险${pct(liveRisk,0)}/银行${pct(1-liveRisk,0)}。`;
+    action.textContent = `${d.alert}（z=${Number(d.z).toFixed(2)}）。${mix}月频调仓执行；近半年调整深的 ETF 优先分仓。${picks}`;
+  } else if (d.is_rebal) {
+    document.getElementById("action-pill").textContent = "月末调仓日";
+    action.textContent = `收盘确认信号后，下一交易日按 ${legName} 换仓（T+1）。`;
+  } else if (d.variant === "zenmeshu" && liveRisk != null) {
+    document.getElementById("action-pill").textContent = "维持持仓";
+    action.textContent =
+      `今日无需操作。持仓风险${pct(d.risk_weight,0)}/银行${pct(d.bank_weight,0)}（最近调仓 ${d.last_rebal}）；` +
+      `即时 Z=${Number(d.z).toFixed(2)} 目标约 风险${pct(liveRisk,0)}/银行${pct(1-liveRisk,0)}，等本月末再配比。`;
+  } else {
+    document.getElementById("action-pill").textContent = "维持持仓";
+    action.textContent = `今日无需操作，继续持有 ${legName}（最近调仓 ${d.last_rebal}），等本月末再决策。`;
+  }
+
+  // temp
+  const tm = tempMeta(d.temp);
+  renderGauge(d.temp);
+  const tv = document.getElementById("temp-value");
+  tv.textContent = d.temp.toFixed(1) + "℃";
+  tv.style.color = tm.color;
+  const tag = document.getElementById("temp-tag");
+  tag.textContent = tm.tag;
+  tag.style.color = tm.color;
+  tag.style.background = tm.bg;
+  tag.style.borderColor = tm.bd;
+
+  // allocation donut（怎么输：按 bank_weight/risk_weight 连续配比）
+  const bankPct = (d.bank_weight != null)
+    ? d.bank_weight
+    : (d.leg === "bank" ? d.exposure : 0);
+  const riskPct = (d.risk_weight != null)
+    ? d.risk_weight
+    : ((d.leg === "risk" || d.leg === "risk_etf") ? d.exposure : 0);
+  const cashPct = Math.max(0, 1 - (Number(bankPct) + Number(riskPct)));
+  const bEnd = bankPct * 100;
+  const rEnd = bEnd + riskPct * 100;
+  document.getElementById("donut").style.background =
+    `conic-gradient(#f0b429 0 ${bEnd}%, #36cfc9 ${bEnd}% ${rEnd}%, #5a647a ${rEnd}% 100%)`;
+  document.getElementById("donut-exp").textContent = pct(d.exposure, 0);
+  const riskHint = d.variant === "zenmeshu" ? "Z连续配比·调整深优先" : "流动性×动量";
+  const bankHint = d.variant === "zenmeshu" ? "Z升高加仓银行" : "分配权锚";
+  document.getElementById("legend").innerHTML = `
+    <div class="item"><span class="dot" style="background:#f0b429"></span>银行腿 <small>${bankHint}</small>
+      <span class="pct" style="color:#f0b429">${pct(bankPct,0)}</span></div>
+    <div class="item"><span class="dot" style="background:#36cfc9"></span>风险腿 <small>${riskHint}</small>
+      <span class="pct" style="color:#36cfc9">${pct(riskPct,0)}</span></div>
+    <div class="item"><span class="dot" style="background:#5a647a"></span>现金 <small>未分配</small>
+      <span class="pct" style="color:#aab2c5">${pct(cashPct,0)}</span></div>
+  `;
+
+  renderDev(d.z, d.z_hist || [], d.z_years || 3, { zPanel1y: !!d.z_panel_1y });
+
+  // 近一年逐月 / 长周期：10年收益率列表
+  const useHorizon = !!(d.horizon_years && (d.yearly_review || []).length);
+  const yRet = document.getElementById("year-ret");
+  const yAnn = document.getElementById("year-ann");
+  const yearSummary = document.getElementById("year-summary-wrap");
+  if (useHorizon) {
+    document.getElementById("year-title").textContent = `${d.horizon_years}年收益率`;
+    document.getElementById("year-sub").textContent =
+      `区间 ${d.horizon_start || "—"} → ${d.asof} · 逐年扣费后收益（近→远）`;
+    if (yearSummary) yearSummary.style.display = "none";
+    const years = (d.yearly_review || []).slice().reverse();
+    const legText = (leg) => leg === "bank" ? "银行腿"
+      : (leg === "risk_etf" ? "风险ETF"
+        : (leg === "blend" ? "配比" : (leg === "risk" ? "风险腿" : "—")));
+    const legTag = (leg) => leg === "bank"
+      ? '<span class="tag tag-bank">银行腿</span>'
+      : (leg === "risk_etf" || leg === "risk"
+        ? '<span class="tag tag-risk">风险腿</span>'
+        : (leg === "blend" ? '<span class="tag tag-bank">配比</span>' : ""));
+    document.getElementById("month-list").innerHTML = `
+      <table class="year-ret-table">
+        <thead>
+          <tr><th>年份</th><th>年收益</th><th>核心持仓腿</th><th>仓位</th></tr>
+        </thead>
+        <tbody>
+          ${years.map(m => {
+            const retCls = m.return > 0 ? "up" : (m.return < 0 ? "down" : "flat");
+            return `<tr>
+              <td class="year">${m.year}</td>
+              <td class="ret ${retCls}">${signedPct(m.return, 2)}</td>
+              <td>${legTag(m.leg) || legText(m.leg)}</td>
+              <td style="color:#aab2c5">${pct(m.exposure, 0)}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>`;
+  } else {
+    if (yearSummary) yearSummary.style.display = "";
+    yRet.textContent = signedPct(d.return_1y, 1);
+    yRet.style.color = (d.return_1y == null || Number.isNaN(d.return_1y)) ? "#e6e9f2" : (d.return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+    yAnn.textContent = signedPct(d.ann_return_1y, 1);
+    yAnn.style.color = (d.ann_return_1y == null || Number.isNaN(d.ann_return_1y)) ? "#e6e9f2" : (d.ann_return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+    const periods = (d.monthly_review || []).slice().reverse();
+    document.getElementById("year-sub").textContent =
+      `近${periods.length || 12}个月逐月持仓分布与月收益（月初实际持仓 · 扣费后）`;
+    document.getElementById("month-list").innerHTML = periods.map(m => {
+      const tag = m.leg === "bank"
+        ? '<span class="tag tag-bank">银行腿</span>'
+        : (m.leg === "risk_etf"
+          ? '<span class="tag tag-risk">风险ETF</span>'
+          : (m.leg === "blend"
+            ? '<span class="tag tag-bank">配比</span>'
+            : (m.leg === "risk" ? '<span class="tag tag-risk">风险腿</span>' : "")));
+      const retCls = m.return > 0 ? "up" : (m.return < 0 ? "down" : "flat");
+      const rows = (m.holdings || []).map((h, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><span class="code">${h.code}</span></td>
+          <td>${h.name || ""}</td>
+          <td>${pct(h.weight, 2)}</td>
+        </tr>`).join("");
+      return `<div class="month-row">
+        <div class="month-head">
+          <div class="m-title">${m.month}</div>
+          <div class="m-meta">
+            ${tag}
+            <span style="color:#8b93a7;font-size:12px">仓位 ${pct(m.exposure,0)}</span>
+            <span class="m-ret ${retCls}">月收益 ${signedPct(m.return, 2)}</span>
+          </div>
+        </div>
+        <table class="month-table">
+          <thead>
+            <tr><th>#</th><th>代码</th><th>名称</th><th>权重</th></tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="4" style="color:#7c8499">无持仓</td></tr>'}
+          </tbody>
+        </table>
+      </div>`;
+    }).join("");
+  }
+
+  // holdings
+  document.getElementById("hold-sub").textContent =
+    `按仓位权重降序 · 共 ${d.holdings.length} 只标的 · 懒人替代：银行ETF 512800 / 512000`;
+  const legTag = d.leg === "bank"
+    ? '<span class="tag tag-bank">银行腿</span>'
+    : (d.leg === "blend"
+      ? '<span class="tag tag-bank">配比</span>'
+      : '<span class="tag tag-risk">风险腿</span>');
+  const note = d.variant === "zenmeshu"
+    ? `风险 ${pct(d.risk_weight,0)} · 银行 ${pct(d.bank_weight,0)} · Z线性配比`
+    : (d.leg === "bank" ? "等权银行组合" : "流动性前2N→动量前N");
+  document.getElementById("hold-body").innerHTML = d.holdings.map(h => {
+    let chgCls = "flat", chgTxt = "—";
+    if (h.chg != null) {
+      chgCls = h.chg > 0 ? "up" : (h.chg < 0 ? "down" : "flat");
+      chgTxt = signedPct(h.chg, 2);
+    }
+    return `<tr>
+      <td><span class="code">${h.code}</span></td>
+      <td>${h.name}</td>
+      <td>${legTag}</td>
+      <td>${pct(h.weight, 2)}</td>
+      <td>${money(h.price)}</td>
+      <td class="${chgCls}">${chgTxt}</td>
+      <td>${note}</td>
+    </tr>`;
+  }).join("");
+}
+
+render(DATA);
+</script>
+</body>
+</html>

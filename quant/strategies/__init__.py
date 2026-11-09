@@ -13,6 +13,10 @@ from quant.strategies.strategy1 import (
     Strategy1Config,
     generate_target_weights_breaker,
 )
+from quant.strategies.zenmeshu import (
+    ZenmeshuConfig,
+    generate_target_weights_zenmeshu,
+)
 
 __all__ = [
     "Strategy",
@@ -21,6 +25,8 @@ __all__ = [
     "DualAnchorConfig",
     "generate_target_weights",
     "generate_target_weights_breaker",
+    "generate_target_weights_zenmeshu",
+    "ZenmeshuConfig",
     "STRATEGY_ID",
     "STRATEGY_NAME",
     "STRATEGY_CODE",

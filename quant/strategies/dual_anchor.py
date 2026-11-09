@@ -56,7 +56,8 @@ class DualAnchorConfig:
     top_n: int = 10
     z_crisis: float = 2.0
     crisis_scale: float = 0.5
-    rebalance: str = "W-FRI"
+    # 默认月频：月末（交易日）调仓，月内不换仓
+    rebalance: str = "BME"
 
 
 def build_anchors(
@@ -127,11 +128,14 @@ def generate_target_weights(
     cfg: DualAnchorConfig | None = None,
     bank_symbols: list[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """生成每日目标权重（收盘决策）；回测时请 shift(1) 作为 T+1 生效。
+    """生成目标权重（收盘决策）；回测时请 shift(1) 作为 T+1 生效。
+
+    仅在调仓日（默认月末 BME）根据信号换腿/换股；
+    非调仓日沿用上一调仓日权重，月内不频繁操作。
 
     Returns:
         weights: 列=标的，行=日期，和为总仓位
-        state: 含 z/trend/leg/exposure 的状态表
+        state: 含 z/trend/leg/exposure/rebalance 的状态表
     """
     cfg = cfg or DualAnchorConfig()
     banks = bank_symbols or DEFAULT_BANKS
@@ -145,20 +149,29 @@ def generate_target_weights(
         trend_lookback=cfg.trend_lookback,
     )
 
-    rebal_dates = close.resample(cfg.rebalance).last().dropna(how="all").index
-    rebal_dates = close.index.intersection(rebal_dates)
+    try:
+        rebal_dates = close.resample(cfg.rebalance).last().dropna(how="all").index
+    except ValueError:
+        # 兼容旧版 pandas 频率名
+        alt = {"BME": "BM", "ME": "M"}.get(cfg.rebalance, cfg.rebalance)
+        rebal_dates = close.resample(alt).last().dropna(how="all").index
+    rebal_dates = set(close.index.intersection(rebal_dates))
 
     weights = pd.DataFrame(0.0, index=close.index, columns=close.columns)
     rows: list[dict] = []
     last_risk: list[str] = []
+    held_leg = "bank"
+    held_exp = 1.0
+    prev_w = pd.Series(0.0, index=close.columns)
 
     for i, dt in enumerate(close.index):
         z = float(anchors.at[dt, "z"]) if pd.notna(anchors.at[dt, "z"]) else 0.0
         tr = float(anchors.at[dt, "trend"]) if pd.notna(anchors.at[dt, "trend"]) else 0.0
-        exposure = cfg.crisis_scale if abs(z) > cfg.z_crisis else 1.0
-        leg = "risk" if tr > 0 else "bank"
+        is_rebal = dt in rebal_dates or i == 0
 
-        if dt in rebal_dates or i == 0:
+        if is_rebal:
+            held_exp = cfg.crisis_scale if abs(z) > cfg.z_crisis else 1.0
+            held_leg = "risk" if tr > 0 else "bank"
             picks = select_risk_names(
                 close,
                 volume,
@@ -171,24 +184,30 @@ def generate_target_weights(
             if picks:
                 last_risk = picks
 
-        if leg == "risk" and last_risk:
-            w = exposure / len(last_risk)
-            for s in last_risk:
-                if s in weights.columns:
-                    weights.at[dt, s] = w
-        elif leg == "bank" and bank_cols:
-            w = exposure / len(bank_cols)
-            for s in bank_cols:
-                weights.at[dt, s] = w
+            raw = pd.Series(0.0, index=close.columns)
+            if held_leg == "risk" and last_risk:
+                w = held_exp / len(last_risk)
+                for s in last_risk:
+                    raw.at[s] = w
+            elif bank_cols:
+                w = held_exp / len(bank_cols)
+                for s in bank_cols:
+                    raw.at[s] = w
+            prev_w = raw
+        # 非调仓日：沿用上一调仓权重
+
+        weights.loc[dt] = prev_w.to_numpy()
 
         rows.append(
             {
                 "date": dt,
                 "z": z,
                 "trend": tr,
-                "leg": leg,
-                "exposure": exposure,
-                "risk_names": ",".join(last_risk) if leg == "risk" else "",
+                "leg": held_leg,
+                "exposure": held_exp,
+                "rebalance": bool(is_rebal),
+                "signal_leg": "risk" if tr > 0 else "bank",
+                "risk_names": ",".join(last_risk) if held_leg == "risk" else "",
             }
         )
 
