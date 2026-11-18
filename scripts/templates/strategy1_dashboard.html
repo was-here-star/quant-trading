@@ -916,6 +916,35 @@ function render(d) {
         ? "#e6e9f2"
         : "#3ecf6e";
     }
+  } else if (d.calendar_year) {
+    // 自然年至今：主指标用 YTD，不展示近一年
+    const cy = d.calendar_year;
+    const annTitle = document.getElementById("ann-title");
+    const annSub = document.getElementById("ann-sub");
+    if (annTitle) annTitle.textContent = `${cy}年累计收益率`;
+    if (annSub) annSub.textContent =
+      `${cy}-01-01 → ${d.asof} · 月末 BME · 扣费后；旁注今年年化与本月`;
+    const ytd = d.ytd_return;
+    const annEl = document.getElementById("ann-value");
+    if (annEl) {
+      annEl.textContent = signedPct(ytd, 1);
+      annEl.style.color = (ytd == null || Number.isNaN(ytd)) ? "#e6e9f2" : (ytd >= 0 ? "#ff5b5b" : "#3ecf6e");
+    }
+    const a1 = document.getElementById("ann-1y");
+    const k1 = document.getElementById("ann-side-k1");
+    if (k1) k1.textContent = "今年年化";
+    if (a1) {
+      a1.textContent = signedPct(d.ann_return, 1);
+      a1.style.color = (d.ann_return == null || Number.isNaN(d.ann_return)) ? "#e6e9f2" : (d.ann_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+    }
+    const ay = document.getElementById("ann-ytd");
+    const ayWrap = ay ? ay.closest(".pill-stat") : null;
+    const ayK = ayWrap ? ayWrap.querySelector(".k") : null;
+    if (ayK) ayK.textContent = "本月累计";
+    if (ay) {
+      ay.textContent = signedPct(d.mtd_return, 1);
+      ay.style.color = (d.mtd_return == null || Number.isNaN(d.mtd_return)) ? "#e6e9f2" : (d.mtd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+    }
   } else {
     // 主指标：近12个月真实年化（不再用当年至今折年）
     const ann = d.ann_return_1y;
@@ -1063,13 +1092,30 @@ function render(d) {
       </table>`;
   } else {
     if (yearSummary) yearSummary.style.display = "";
-    yRet.textContent = signedPct(d.return_1y, 1);
-    yRet.style.color = (d.return_1y == null || Number.isNaN(d.return_1y)) ? "#e6e9f2" : (d.return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
-    yAnn.textContent = signedPct(d.ann_return_1y, 1);
-    yAnn.style.color = (d.ann_return_1y == null || Number.isNaN(d.ann_return_1y)) ? "#e6e9f2" : (d.ann_return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
-    const periods = (d.monthly_review || []).slice().reverse();
-    document.getElementById("year-sub").textContent =
-      `近${periods.length || 12}个月逐月持仓分布与月收益（月初实际持仓 · 扣费后）`;
+    const cy = d.calendar_year;
+    let periods = (d.monthly_review || []).slice();
+    if (cy) {
+      const prefix = `${cy}-`;
+      periods = periods.filter(m => String(m.month || "").startsWith(prefix));
+      document.getElementById("year-title").textContent = `${cy}年月度明细`;
+      document.getElementById("year-label").textContent = `${cy}年累计`;
+      document.getElementById("year-ann-k").textContent = `${cy}年年化`;
+      document.getElementById("year-ann-sub").textContent = "旁注为今年至今年化";
+      yRet.textContent = signedPct(d.ytd_return, 1);
+      yRet.style.color = (d.ytd_return == null || Number.isNaN(d.ytd_return)) ? "#e6e9f2" : (d.ytd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+      yAnn.textContent = signedPct(d.ann_return, 1);
+      yAnn.style.color = (d.ann_return == null || Number.isNaN(d.ann_return)) ? "#e6e9f2" : (d.ann_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+      document.getElementById("year-sub").textContent =
+        `${cy}-01-01 → ${d.asof} · 逐月持仓分布与月收益（月初实际持仓 · 扣费后）`;
+    } else {
+      yRet.textContent = signedPct(d.return_1y, 1);
+      yRet.style.color = (d.return_1y == null || Number.isNaN(d.return_1y)) ? "#e6e9f2" : (d.return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+      yAnn.textContent = signedPct(d.ann_return_1y, 1);
+      yAnn.style.color = (d.ann_return_1y == null || Number.isNaN(d.ann_return_1y)) ? "#e6e9f2" : (d.ann_return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+      document.getElementById("year-sub").textContent =
+        `近${periods.length || 12}个月逐月持仓分布与月收益（月初实际持仓 · 扣费后）`;
+    }
+    periods = periods.slice().reverse();
     document.getElementById("month-list").innerHTML = periods.map(m => {
       const tag = m.leg === "bank"
         ? '<span class="tag tag-bank">银行腿</span>'
