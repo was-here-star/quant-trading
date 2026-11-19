@@ -17,6 +17,10 @@ from quant.strategies.zenmeshu import (
     ZenmeshuConfig,
     generate_target_weights_zenmeshu,
 )
+from quant.strategies.hongdeng import (
+    HongdengConfig,
+    generate_target_weights_hongdeng,
+)
 
 __all__ = [
     "Strategy",
@@ -26,7 +30,9 @@ __all__ = [
     "generate_target_weights",
     "generate_target_weights_breaker",
     "generate_target_weights_zenmeshu",
+    "generate_target_weights_hongdeng",
     "ZenmeshuConfig",
+    "HongdengConfig",
     "STRATEGY_ID",
     "STRATEGY_NAME",
     "STRATEGY_CODE",

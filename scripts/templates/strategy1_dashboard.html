@@ -5,50 +5,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>策略看板</title>
 <style>
+  :root {
+    --bg: #121214;
+    --panel: #1a1a1c;
+    --card: #1e1e20;
+    --line: rgba(255,255,255,.06);
+    --text: #f4f4f5;
+    --muted: #8b8b93;
+    --accent: #9fc2ff;
+    --accent2: #7fb4ff;
+    --teal: #3dd68c;
+    --radius: 16px;
+    --shadow: none;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
-    background: #0b1020;
-    color: #e6e9f2;
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
-    padding: 28px;
-    background-image:
-      radial-gradient(1200px 500px at 80% -10%, rgba(64,120,255,.12), transparent 60%),
-      radial-gradient(900px 400px at -10% 110%, rgba(0,200,180,.10), transparent 60%);
+    padding: 18px 18px 24px;
   }
   header {
-    display: flex; align-items: baseline; justify-content: space-between;
-    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
   }
   header h1 {
-    font-size: 24px; font-weight: 700; letter-spacing: 1px;
-    background: linear-gradient(90deg, #7fb4ff, #36cfc9);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-size: 24px; font-weight: 720; letter-spacing: -.2px;
+    color: #fafafa;
   }
-  header .meta { color: #8b93a7; font-size: 13px; }
-  header .meta b { color: #e6e9f2; }
+  header .meta {
+    color: var(--muted); font-size: 13px;
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--card);
+    border: 0;
+  }
+  header .meta b { color: #f4f4f5; }
 
   .grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 20px;
+    gap: 14px;
   }
   .card {
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 16px;
-    padding: 22px 24px;
-    backdrop-filter: blur(10px);
+    background: var(--card);
+    border: 0;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
   }
   .card h2 {
-    font-size: 15px; font-weight: 600; color: #cdd4e4;
+    font-size: 14px; font-weight: 650; color: #e4e4e7;
     margin-bottom: 4px; display: flex; align-items: center; gap: 8px;
   }
   .card h2::before {
-    content: ""; width: 4px; height: 14px; border-radius: 2px;
-    background: linear-gradient(180deg, #7fb4ff, #36cfc9);
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: #f4f4f5;
+    box-shadow: none;
   }
-  .card .sub { font-size: 12px; color: #7c8499; margin-bottom: 16px; }
+  .card .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.45; }
 
   .col-3 { grid-column: span 3; }
   .col-4 { grid-column: span 4; }
@@ -60,144 +75,653 @@
     .col-3, .col-4, .col-5, .col-6, .col-8 { grid-column: span 12; }
   }
 
-  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .kpi-row.horizon-3 { grid-template-columns: repeat(3, 1fr); }
-  @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 700px) {
-    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .kpi-row { grid-template-columns: 1fr 1fr; }
     .kpi-row.horizon-3 { grid-template-columns: 1fr; }
   }
   .kpi {
-    background: rgba(255,255,255,.03);
-    border: 1px solid rgba(255,255,255,.06);
-    border-radius: 12px; padding: 18px 16px;
-    display: flex; flex-direction: column; justify-content: center;
-    min-height: 88px;
+    position: relative;
+    background: var(--card);
+    border: 0;
+    border-radius: var(--radius);
+    padding: 18px 18px 16px;
+    display: flex; flex-direction: column; justify-content: flex-start;
+    min-height: 148px;
+    overflow: hidden;
+    box-shadow: none;
   }
+  .kpi::after { display: none; }
   .kpi.hero {
-    min-height: 120px; padding: 22px 20px;
-    background: rgba(255,255,255,.035);
+    min-height: 120px; padding: 18px 18px 16px;
+    background: #252528;
+    border: 0;
     align-items: flex-start;
     text-align: left;
   }
-  .kpi .label { font-size: 12px; color: #7c8499; margin-bottom: 8px; }
-  .kpi .value { font-size: 20px; font-weight: 700; }
-  .kpi.hero .label { font-size: 13px; margin-bottom: 10px; text-align: left; }
-  .kpi.hero .value { font-size: 36px; font-weight: 750; letter-spacing: 0.3px; text-align: left; }
-  .kpi.hero .hint { font-size: 11px; color: #7c8499; margin-top: 8px; text-align: left; }
+  .kpi.hero::after { display: none; }
+  .kpi-row.horizon-3 .kpi.hero:nth-child(2),
+  .kpi-row.horizon-3 .kpi.hero:nth-child(3) {
+    background: #252528;
+  }
+  .kpi-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px; position: relative; z-index: 1;
+  }
+  .kpi .label {
+    font-size: 13px; color: #a1a1aa; font-weight: 500;
+    margin-bottom: 0; line-height: 1.3;
+  }
+  .kpi-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+    color: #e4e4e7; font-size: 11.5px; font-weight: 600;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .kpi-badge .arrow { font-size: 11px; line-height: 1; }
+  .kpi .value {
+    font-size: 28px; font-weight: 760; position: relative; z-index: 1;
+    letter-spacing: .1px; line-height: 1.15; margin-bottom: 14px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 14px rgba(255,91,91,.18);
+  }
+
+  .kpi-footer { margin-top: auto; position: relative; z-index: 1; }
+  .kpi-trend-line {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: #f4f4f5; line-height: 1.35;
+  }
+  .kpi-trend-line .arrow { font-size: 12px; opacity: .9; }
+  .kpi-desc {
+    margin-top: 4px; font-size: 12px; color: #71717a; line-height: 1.4;
+  }
+  .kpi.hero .label { font-size: 13px; margin-bottom: 10px; text-align: left; color: rgba(230,233,242,.86); }
+  .kpi.hero .value { font-size: 34px; font-weight: 760; letter-spacing: 0.2px; text-align: left; margin-bottom: 0; }
+  .kpi.hero .hint { font-size: 11px; color: rgba(200,208,224,.75); margin-top: 8px; text-align: left; position: relative; z-index: 1; }
   .kpi-row.horizon-3 .kpi { text-align: left; align-items: flex-start; }
 
+  /* 近12个月年化：大数字突出 + 旁注卡底光 */
   .ann-card {
     display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
   }
-  .ann-main { display: flex; flex-direction: column; gap: 6px; }
+  .ann-main { display: flex; flex-direction: column; gap: 8px; }
   .ann-main .ann-label { font-size: 13px; color: #8b93a7; }
-  .ann-main .ann-value { font-size: 42px; font-weight: 750; letter-spacing: 0.5px; line-height: 1.1; }
-  .ann-main .ann-sub { font-size: 12px; color: #7c8499; }
-  .ann-side {
-    display: flex; gap: 12px; flex-wrap: wrap;
+  .ann-main .ann-value {
+    font-size: 52px; font-weight: 780; letter-spacing: -.4px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 24px rgba(255,91,91,.28);
   }
+  .ann-main .ann-value.ret-down {
+    text-shadow: 0 0 24px rgba(62,207,110,.28);
+  }
+  .ann-main .ann-value.ret-flat { text-shadow: none; }
+  .ann-main .ann-sub { font-size: 12px; color: rgba(200,208,224,.72); }
+  .ann-side { display: flex; gap: 12px; flex-wrap: wrap; }
   .ann-side .pill-stat {
-    min-width: 120px; padding: 12px 16px; border-radius: 12px;
-    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+    position: relative;
+    min-width: 132px; padding: 14px 16px 16px; border-radius: 14px;
+    background: linear-gradient(180deg, #262629 0%, #1c1c1f 100%);
+    border: 1px solid rgba(255,255,255,.06);
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0,0,0,.22);
   }
-  .ann-side .pill-stat .k { font-size: 11px; color: #7c8499; margin-bottom: 4px; }
-  .ann-side .pill-stat .v { font-size: 18px; font-weight: 700; }
+  .ann-side .pill-stat::after {
+    content: "";
+    position: absolute; left: 12%; right: 12%; bottom: -2px; height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(255,91,91,.85), transparent);
+    box-shadow: 0 0 14px rgba(255,91,91,.55);
+    opacity: .9;
+  }
+  .ann-side .pill-stat.ret-down::after {
+    background: linear-gradient(90deg, transparent, rgba(62,207,110,.85), transparent);
+    box-shadow: 0 0 14px rgba(62,207,110,.5);
+  }
+  .ann-side .pill-stat.ret-flat::after { opacity: .25; background: rgba(255,255,255,.25); box-shadow: none; }
+  .ann-side .pill-stat .k { font-size: 11px; color: #9aa3b8; margin-bottom: 6px; }
+  .ann-side .pill-stat .v {
+    font-size: 22px; font-weight: 740; letter-spacing: -.2px;
+    font-variant-numeric: tabular-nums;
+  }
+  #ann-card-wrap {
+    position: relative;
+    overflow: hidden;
+  }
+  #ann-card-wrap::after {
+    content: "";
+    pointer-events: none;
+    position: absolute; left: 0; right: 0; bottom: -40%;
+    height: 70%;
+    background: radial-gradient(ellipse at 20% 100%, rgba(255,91,91,.16), transparent 55%);
+    opacity: .9;
+  }
+  #ann-card-wrap.ret-down::after {
+    background: radial-gradient(ellipse at 20% 100%, rgba(62,207,110,.14), transparent 55%);
+  }
 
-  .month-list { display: flex; flex-direction: column; gap: 18px; }
+  /* 指定红：KPI 外层无灰底；左右分栏后右侧气温/配置均分左侧总高 */
+  #kpi-card-wrap {
+    align-self: start;
+    background: transparent !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  #kpi-card-wrap > .kpi-row {
+    margin-bottom: 0;
+    width: 100%;
+    gap: 12px;
+  }
+  #kpi-card-wrap > .action { display: none !important; }
+
+  .main-split {
+    grid-column: span 12;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+    min-width: 0;
+  }
+  .main-split .split-left {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+  .main-split .split-right {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 14px;
+    min-width: 0;
+    min-height: 0;
+  }
+  .main-split .split-left > .card,
+  .main-split .split-right > .card {
+    width: 100%;
+    min-width: 0;
+  }
+  .main-split #kpi-card-wrap { flex: 0 0 auto; }
+  .main-split #hold-card-wrap { flex: 1 1 auto; }
+  .main-split #temp-card-wrap,
+  .main-split #alloc-card-wrap {
+    height: auto;
+    min-height: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+  .main-split #temp-card-wrap .temp-wrap,
+  .main-split #alloc-card-wrap .alloc-wrap {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  @media (max-width: 1100px) {
+    .main-split { grid-template-columns: 1fr; }
+    .main-split .split-right { grid-template-rows: auto auto; }
+  }
+
+  #temp-card-wrap { align-self: stretch; }
+  #temp-card-wrap .temp-wrap { transform: none; }
+  #hold-card-wrap, #alloc-card-wrap, #dev-card-wrap, #year-card-wrap { align-self: stretch; }
+
+  #alloc-card-wrap {
+    padding-bottom: 22px;
+  }
+
+
+  /* 近一年月收益柱：对齐风险水位——无虚线外框，贯通虚线零轴，底线+刻度 */
+  .month-chart-wrap {
+    width: 100%;
+    background: transparent;
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  .month-bars {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 10px;
+    align-items: stretch;
+    height: 220px;
+    min-height: 220px;
+    padding: 6px 6px 0;
+    margin-bottom: 0;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+  }
+  /* 贯通零轴：与风险水位同款虚线，非整框 */
+  .month-bars::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    border-top: 1px dashed rgba(255,255,255,.22);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .month-bars .bar-cell {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    justify-items: center;
+    min-width: 0;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  .month-bars .bar-slot {
+    width: 100%;
+    max-width: 40px;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .month-bars .bar-slot.pos { justify-content: flex-end; }
+  .month-bars .bar-slot.neg { justify-content: flex-start; }
+  .month-bars .bar {
+    width: 22px;
+    max-width: 70%;
+    flex-shrink: 0;
+    border-radius: 4px;
+  }
+  .month-bars .bar.up {
+    border-radius: 4px 4px 2px 2px;
+    background: #ff5b5b;
+    box-shadow: none;
+  }
+  .month-bars .bar.down {
+    border-radius: 2px 2px 4px 4px;
+    background: #3ecf6e;
+    box-shadow: none;
+  }
+  .month-bars .bar.flat {
+    border-radius: 3px;
+    background: rgba(255,255,255,.16);
+    height: 3px !important;
+    flex: none !important;
+  }
+  .month-bars .bar-val {
+    font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+    white-space: nowrap; line-height: 1.2;
+    flex-shrink: 0;
+  }
+  .month-bars .bar-slot.pos .bar-val { margin-bottom: 6px; }
+  .month-bars .bar-slot.neg .bar-val { margin-top: 6px; }
+  .month-bars .bar-val.up { color: #ff5b5b; }
+  .month-bars .bar-val.down { color: #3ecf6e; }
+  .month-bars .bar-val.flat { color: #71717a; }
+  .month-bars .bar-lab { display: none !important; }
+  .month-x-axis {
+    display: block;
+    width: 100%;
+    height: 1px;
+    margin: 6px 0 0;
+    padding: 0;
+    border: 0;
+    background: rgba(255,255,255,.08);
+  }
+  .month-x-labs {
+    display: grid;
+    width: 100%;
+    margin: 0;
+    padding: 0 6px;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+
+  .month-x-labs .lab {
+    text-align: center;
+    font-size: 12px;
+    color: #a1a1aa;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    position: relative;
+    padding-top: 8px;
+    line-height: 1.15;
+    min-height: 34px;
+  }
+  .month-x-labs .lab.has-year { padding-top: 18px; min-height: 44px; }
+  .month-x-labs .lab .y {
+    position: absolute;
+    top: 6px; left: 0; right: 0;
+    font-size: 10px; font-weight: 700;
+    color: #36cfc9; letter-spacing: 0;
+  }
+  .month-x-labs .lab .m { display: block; }
+  .month-x-labs .lab.has-year::before { top: 14px; }
+  .month-bars-legend {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px 12px; flex-wrap: wrap;
+    /* 在上方图表与卡片下沿之间垂直居中 */
+    margin: 28px 0 20px;
+    padding: 0;
+    width: 100%;
+  }
+  #year-card-wrap {
+    padding-bottom: 8px;
+  }
+  .month-bars-legend .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+    background: transparent; border: 1px solid rgba(255,255,255,.14);
+    color: #e4e4e7; white-space: nowrap;
+  }
+  .month-bars-legend .chip .k { color: #8b8b93; }
+  .month-bars-legend .chip .v { font-weight: 650; color: #f4f4f5; }
+  .month-bars-legend .chip .v.up { color: #ff6b73; }
+  .month-bars-legend .chip .v.down { color: #3ecf6e; }
+  .month-bars-legend .swatch {
+    width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0;
+    background: transparent; box-shadow: none;
+  }
+  .month-bars-legend .swatch.up { border: 1.5px solid #ff525d; }
+  .month-bars-legend .swatch.down { border: 1.5px solid #22c55e; }
+
+
+  .detail-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    flex-shrink: 0; margin-top: 2px;
+    padding: 7px 14px; border-radius: 999px;
+    border: 1.5px solid #36cfc9;
+    background: transparent; color: #36cfc9;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    white-space: nowrap; transition: background .15s, border-color .15s, color .15s;
+  }
+  .detail-link:hover {
+    border-color: #36cfc9;
+    background: rgba(54,207,201,.10);
+    color: #36cfc9;
+  }
+  .detail-link.active {
+    border-color: #36cfc9;
+    background: rgba(54,207,201,.14);
+    color: #36cfc9;
+  }
+  .detail-link .arrows {
+    display: inline-flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 0; line-height: 1;
+    font-size: 9px; font-weight: 700; color: #36cfc9;
+  }
+  .detail-link .arrows span { display: block; height: 8px; line-height: 8px; }
+
+  #month-hold-detail {
+    display: none;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+  #month-hold-detail.open { display: block; }
+  #month-hold-detail .detail-title {
+    font-size: 13px; font-weight: 650; color: #e4e4e7;
+    margin-bottom: 12px;
+  }
+
+  .month-list { display: flex; flex-direction: column; gap: 12px; }
   .month-row {
     border: 1px solid rgba(255,255,255,.07);
     background: rgba(255,255,255,.025);
-    border-radius: 12px; padding: 14px 16px;
+    border-radius: 14px; padding: 14px 16px;
+    transition: border-color .15s, background .15s;
   }
+  .month-row:hover { border-color: rgba(127,180,255,.22); background: rgba(255,255,255,.035); }
   .month-head {
     display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
+  .month-row.open .month-head { margin-bottom: 8px; }
   .month-head .m-title { font-size: 15px; font-weight: 700; color: #e6e9f2; }
   .month-head .m-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .month-head .m-ret { font-size: 16px; font-weight: 700; }
+.month-head .m-ret {
+    font-size: 18px; font-weight: 740; font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 12px rgba(255,91,91,.2);
+  }
+  .month-head .m-ret.down { text-shadow: 0 0 12px rgba(62,207,110,.2); }
+  .month-head .m-ret.flat { text-shadow: none; }
+  .hold-toggle {
+    margin-left: auto;
+    border: 1px solid rgba(54,207,201,.35);
+    background: rgba(54,207,201,.10);
+    color: #36cfc9;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .hold-toggle:hover { background: rgba(54,207,201,.18); }
+  .month-row.open .hold-toggle {
+    border-color: rgba(255,255,255,.16);
+    background: rgba(255,255,255,.06);
+    color: #cdd4e4;
+  }
+  .month-holdings { display: none; margin-top: 4px; }
+  .month-row.open .month-holdings { display: block; }
   .month-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
   .month-table th, .month-table td {
-    padding: 8px 6px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.06);
+    padding: 10px 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.05);
   }
   .month-table th { color: #7c8499; font-weight: 500; font-size: 12px; }
   .month-table tr:last-child td { border-bottom: none; }
   .month-table tr:hover td { background: rgba(255,255,255,.03); }
   .year-ret-table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .year-ret-table th, .year-ret-table td {
-    padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); text-align: left;
+    padding: 13px 14px; border-bottom: 1px solid rgba(255,255,255,.05); text-align: left;
   }
   .year-ret-table th { color: #7c8499; font-weight: 500; font-size: 12px; }
   .year-ret-table td.year { font-weight: 700; color: #e6e9f2; }
-  .year-ret-table td.ret { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .year-ret-table td.ret { font-weight: 720; font-variant-numeric: tabular-nums; }
   .year-ret-table tr:hover td { background: rgba(255,255,255,.03); }
 
-  .temp-wrap { display: flex; flex-direction: column; align-items: center; }
-  .temp-value { font-size: 40px; font-weight: 700; margin-top: 6px; }
-  .temp-tag {
-    margin-top: 6px; padding: 4px 14px; border-radius: 999px; font-size: 13px;
-    border: 1px solid transparent;
+  .temp-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 280px; padding-top: 2px;
   }
-  .temp-scale { display: flex; justify-content: space-between; width: 240px; margin-top: 8px; font-size: 11px; color: #7c8499; }
+  .temp-gauge-box {
+    position: relative;
+    width: 100%; max-width: 360px;
+    aspect-ratio: 280 / 170;
+  }
+  .temp-gauge-box svg {
+    width: 100%; height: 100%; display: block;
+  }
+  .temp-center {
+    position: absolute; left: 50%; top: 58%;
+    transform: translate(-50%, -35%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    pointer-events: none; width: 78%;
+  }
+  .temp-value {
+    font-size: 26px; font-weight: 720; letter-spacing: -.4px; line-height: 1;
+  }
+  .temp-tag {
+    margin-top: 0; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 650;
+    border: 1.5px solid currentColor; background: transparent; color: #3ecf6e;
+  }
+  .temp-note {
+    display: flex; align-items: center; justify-content: center;
+    gap: 18px; flex-wrap: wrap;
+    margin-top: 12px; width: 100%;
+    font-size: 12px; color: #a1a1aa; letter-spacing: .2px;
+  }
+  .temp-note .item {
+    display: inline-flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .temp-note .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .temp-note .dot.cold { background: #3ecf6e; box-shadow: 0 0 6px rgba(62,207,110,.35); }
+  .temp-note .dot.hot { background: #ff5b5b; box-shadow: 0 0 6px rgba(255,91,91,.35); }
+  .temp-note .k { color: #71717a; }
+  .temp-note .v { color: #e4e4e7; font-weight: 600; }
+
 
   .alloc-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 12px;
     width: 100%;
-    margin: 8px auto 0;
+    margin: 2px auto 0;
+    padding-bottom: 16px;
   }
   .donut {
-    width: 170px; height: 170px; border-radius: 50%; position: relative;
-    box-shadow: 0 0 30px rgba(54,207,201,.25);
+    width: 132px; height: 132px; border-radius: 50%; position: relative;
+    box-shadow: none;
     flex-shrink: 0;
   }
   .donut::after {
-    content: ""; position: absolute; inset: 26px; border-radius: 50%; background: #121828;
+    content: ""; position: absolute; inset: 22px; border-radius: 50%; background: #1e1e20;
   }
   .donut-center {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; z-index: 2;
   }
-  .donut-center .big { font-size: 22px; font-weight: 700; }
-  .donut-center .small { font-size: 11px; color: #8b93a7; }
+  .donut-center .big { font-size: 18px; font-weight: 740; }
+  .donut-center .small { font-size: 10px; color: #8b93a7; }
   .legend {
-    display: flex; flex-direction: column; gap: 12px;
-    width: min(260px, 100%);
+    display: flex; flex-direction: column; gap: 8px;
+    width: min(220px, 100%);
     margin: 0 auto;
   }
-  .legend .item { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-  .legend .dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-  .legend .pct { margin-left: auto; font-weight: 700; font-size: 16px; }
-  .legend .item small { color: #8b93a7; font-size: 11px; margin-left: 6px; }
+  .legend .item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .legend .pct { margin-left: auto; font-weight: 720; font-size: 13.5px; }
+  .legend .item small { color: #8b93a7; font-size: 10px; margin-left: 4px; }
 
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.06); }
-  th { color: #7c8499; font-weight: 500; font-size: 12px; }
+  th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,.05); }
+  th {
+    color: #a1a1aa; font-weight: 600; font-size: 12px;
+    background: rgba(255,255,255,.03); border-bottom-color: rgba(255,255,255,.08);
+  }
+  thead th:first-child { border-radius: 10px 0 0 10px; }
+  thead th:last-child { border-radius: 0 10px 10px 0; }
+  tbody tr { transition: background .12s; }
   tr:hover td { background: rgba(255,255,255,.03); }
   .code {
-    font-family: "SF Mono", Consolas, monospace; font-weight: 600; color: #9fc2ff;
-    background: rgba(127,180,255,.1); padding: 2px 8px; border-radius: 6px; font-size: 12.5px;
+    font-family: "SF Mono", Consolas, monospace; font-weight: 600; color: #bfdbfe;
+    background: rgba(96,165,250,.14); padding: 3px 9px; border-radius: 8px; font-size: 12.5px;
   }
-  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .tag { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
   .tag-bank { background: rgba(240,180,41,.14); color: #f0b429; }
   .tag-risk { background: rgba(54,207,201,.14); color: #36cfc9; }
   .tag-cash { background: rgba(139,147,167,.18); color: #aab2c5; }
-  .up { color: #ff5b5b; font-weight: 600; }
-  .down { color: #3ecf6e; font-weight: 600; }
-  .flat { color: #8b93a7; font-weight: 600; }
+  .up { color: #ff5b5b; font-weight: 650; }
+  .down { color: #3ecf6e; font-weight: 650; }
+  .flat { color: #8b93a7; font-weight: 650; }
 
-  .dev-current { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .dev-current .val { font-size: 28px; font-weight: 700; }
-  .dev-current .zone { font-size: 13px; padding: 2px 10px; border-radius: 999px; }
+
+
+  /* 对照1年日频：右上角 = [年份下拉] + [σ在上 / 状态胶囊在下] */
+  .card-top-right {
+    display: inline-flex; align-items: center; gap: 14px;
+    flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end;
+    margin-left: auto;
+  }
+  .year-select-wrap {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 12px 7px 14px; border-radius: 999px;
+    border: 1.5px solid #36cfc9; background: transparent;
+  }
+  .year-select-wrap .k {
+    font-size: 12px; font-weight: 600; color: #a1a1aa; white-space: nowrap;
+  }
+  .year-select-wrap select {
+    appearance: none; -webkit-appearance: none;
+    border: 0; outline: none; background: transparent;
+    color: #f4f4f5; font-size: 13px; font-weight: 740;
+    padding: 2px 18px 2px 2px; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, #36cfc9 50%),
+      linear-gradient(135deg, #36cfc9 50%, transparent 50%);
+    background-position: calc(100% - 8px) 55%, calc(100% - 3px) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+  .year-select-wrap select option { background: #1e1e20; color: #e4e4e7; }
+  #dev-current.card-top-stat {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 8px; max-width: none; padding-top: 0;
+  }
+  #dev-current .val {
+    font-size: 34px; font-weight: 780; letter-spacing: -.4px; line-height: 1;
+    text-shadow: none;
+  }
+  #dev-current .zone {
+    font-size: 12px; font-weight: 650; padding: 5px 12px;
+    border-radius: 999px; border: 1.5px solid currentColor;
+    background: transparent !important;
+  }
+
+  /* 卡片右上角主指标 */
+  .card-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; margin-bottom: 10px;
+  }
+  #dev-card-wrap > .card-top {
+    align-items: center;
+  }
+  .card-top-left { min-width: 0; flex: 1; }
+  .card-top-left h2 { margin-bottom: 4px; }
+  .card-top-left .sub { margin-bottom: 0; }
+  .card-top-stat {
+    display: inline-flex; align-items: center; gap: 10px;
+    flex-shrink: 0; padding-top: 2px; max-width: 52%;
+    flex-wrap: wrap; justify-content: flex-end;
+  }
+  .card-top-stat .val {
+    font-size: 34px; font-weight: 780; letter-spacing: -.4px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(255,91,91,.25);
+  }
+  .card-top-stat .val.ret-down { text-shadow: 0 0 18px rgba(62,207,110,.25); }
+  .card-top-stat .val.ret-flat { text-shadow: none; }
+
+  .card-top-stat .zone {
+    font-size: 12px; padding: 5px 11px; border-radius: 999px;
+    white-space: nowrap; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .card-top-stat .zone.muted {
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.10);
+    color: #e4e4e7; font-weight: 500;
+  }
+  .card-top-stat .ann-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px; font-size: 12px;
+    background: transparent; border: 1px solid rgba(255,255,255,.14);
+    white-space: nowrap;
+  }
+  .card-top-stat .ann-chip .k { color: #8b8b93; }
+  .card-top-stat .ann-chip .v { font-weight: 650; color: #f4f4f5; }
+
   .dev-panel {
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+    background: transparent; border-radius: 0; padding: 0;
   }
   .dev-axis-wrap {
-    width: 100%; display: flex; justify-content: center;
+    width: 100%; display: block;
+  }
+  .dev-axis-wrap svg {
+    width: 100%; display: block;
   }
   .dev-dual {
     width: 100%;
@@ -208,38 +732,56 @@
   .dev-half {
     border: 1px solid rgba(255,255,255,.07);
     background: rgba(255,255,255,.02);
-    border-radius: 12px;
-    padding: 10px 8px 6px;
+    border-radius: 14px;
+    padding: 12px 10px 8px;
   }
   .dev-half-title {
-    font-size: 13px; font-weight: 600; color: #aab2c5;
+    font-size: 13px; font-weight: 650; color: #aab2c5;
     padding: 2px 8px 8px; text-align: left;
   }
   .dev-legend {
-    display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center;
-    max-width: 720px;
+    display: flex; flex-wrap: wrap; gap: 10px 12px; justify-content: center;
+    align-items: center;
+    max-width: none; width: 100%;
+    /* 在上方图表与卡片下沿之间垂直居中 */
+    margin: 28px 0 20px;
+    padding: 0;
+  }
+  #dev-card-wrap {
+    padding-bottom: 8px;
   }
   .dev-legend .chip {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; border-radius: 999px; font-size: 12px;
-    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
-    color: #cdd4e4; white-space: nowrap;
+    padding: 6px 12px; border-radius: 999px; font-size: 12px;
+    background: transparent; border: 1px solid rgba(255,255,255,.14);
+    color: #e4e4e7; white-space: nowrap;
   }
-  .dev-legend .chip .k { color: #7c8499; }
-  .dev-legend .chip .v { font-weight: 600; color: #e6e9f2; }
+  .dev-legend .chip .k { color: #8b8b93; }
+  .dev-legend .chip .v { font-weight: 650; color: #f4f4f5; }
+  .dev-legend .chip .v#dev-side-z,
+  .dev-legend .chip #dev-side-z { color: #36cfc9; }
   .hint { font-size: 12px; color: #7c8499; margin-top: 10px; line-height: 1.55; text-align: center; }
 
   .action {
     display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
-    padding: 14px 16px; border-radius: 12px;
-    background: rgba(54,207,201,.08); border: 1px solid rgba(54,207,201,.22);
-    font-size: 13.5px;
+    padding: 12px 14px; border-radius: 12px;
+    background: rgba(255,255,255,.04); border: 0;
+    font-size: 13px;
+    margin-top: 12px;
+    color: #d4d4d8;
   }
   .action .pill {
-    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
-    background: rgba(54,207,201,.18); color: #36cfc9;
+    padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 650;
+    background: rgba(61,214,140,.16); color: #3dd68c;
   }
-  footer { margin-top: 22px; color: #6b7388; font-size: 11px; text-align: center; }
+  .action .rebal-meta { margin-left: auto; font-size: 12px; color: #71717a; }
+  .action .rebal-meta b { color: #e4e4e7; font-weight: 650; }
+  footer { margin-top: 18px; color: #52525b; font-size: 11px; text-align: center; }
+  body.embedded { padding: 14px 14px 16px; }
+  body.embedded header { display: none; }
+
+  /* 嵌入总看板时收紧留白 */
+  @media (max-width: 1px) { body {} }
 </style>
 </head>
 <body>
@@ -247,8 +789,7 @@
 <header>
   <h1 id="page-title">策略看板</h1>
   <div class="meta">
-    数据日期：<b id="asof">—</b>
-   　·　总仓位：<b id="hdr-exp" style="color:#36cfc9">—</b>
+    <span id="asof-wrap">数据日期：<b id="asof">—</b>　·　</span>总仓位：<b id="hdr-exp" style="color:#36cfc9">—</b>
    　·　调仓：<b id="hdr-rebal">月末 BME</b>
   </div>
 </header>
@@ -277,7 +818,6 @@
 
   <div class="card col-12" id="ann-card-wrap">
     <h2 id="ann-title">近12个月年化收益率</h2>
-    <div class="sub" id="ann-sub">近12个自然月真实收益折年（交易日×252）；旁注近1年累计与 YTD 累计</div>
     <div class="ann-card">
       <div class="ann-main">
         <div class="ann-value" id="ann-value">—</div>
@@ -296,47 +836,24 @@
     </div>
   </div>
 
-  <div class="card col-12" id="kpi-card-wrap">
-    <div class="kpi-row">
-      <div class="kpi">
-        <div class="label">持仓腿</div>
-        <div class="value" id="kpi-leg">—</div>
-      </div>
-      <div class="kpi">
-        <div class="label">比价 20 日趋势</div>
-        <div class="value" id="kpi-trend">—</div>
-      </div>
-      <div class="kpi">
-        <div class="label">今日实时收益率</div>
-        <div class="value" id="kpi-today">—</div>
-      </div>
-      <div class="kpi">
-        <div class="label">本月收益率</div>
-        <div class="value" id="kpi-mtd">—</div>
-      </div>
-      <div class="kpi">
-        <div class="label">最近调仓日</div>
-        <div class="value" id="kpi-rebal" style="font-size:18px">—</div>
-      </div>
-    </div>
-    <div class="action" style="margin-top:16px">
-      <span class="pill" id="action-pill">执行建议</span>
-      <span id="action-text">加载中…</span>
-    </div>
+  <div class="card col-8" id="hold-card-wrap">
+    <h2>具体持仓明细</h2>
+    <div class="sub" id="hold-sub">按仓位权重降序</div>
+    <table>
+      <thead>
+        <tr>
+          <th>股票代码</th>
+          <th>名称</th>
+          <th>腿别</th>
+          <th>仓位占比</th>
+          <th>日涨跌</th>
+        </tr>
+      </thead>
+      <tbody id="hold-body"></tbody>
+    </table>
   </div>
 
-  <div class="card col-6" id="temp-card-wrap">
-    <h2>市场气温</h2>
-    <div class="sub">偏低=偏冷偏银行，偏高=过热偏风险</div>
-    <div class="temp-wrap">
-      <svg id="temp-gauge" width="240" height="150" viewBox="0 0 200 125"></svg>
-      <div class="temp-value" id="temp-value">—</div>
-      <div class="temp-tag" id="temp-tag">—</div>
-      <div class="temp-scale"><span>0 冰点</span><span>50 中性</span><span>100 过热</span></div>
-    </div>
-  </div>
-
-  <div class="card col-6" id="alloc-card-wrap">
+  <div class="card col-4" id="alloc-card-wrap">
     <h2>策略持仓配置</h2>
     <div class="sub">银行腿 ↔ 风险腿切换；|z|&gt;2 时总仓位减半</div>
     <div class="alloc-wrap">
@@ -350,31 +867,94 @@
     </div>
   </div>
 
-  <div class="card col-12" id="hold-card-wrap">
-    <h2>具体持仓明细</h2>
-    <div class="sub" id="hold-sub">按仓位权重降序</div>
-    <table>
-      <thead>
-        <tr>
-          <th>股票代码</th>
-          <th>名称</th>
-          <th>腿别</th>
-          <th>仓位占比</th>
-          <th>最新价</th>
-          <th>日涨跌</th>
-          <th>策略备注</th>
-        </tr>
-      </thead>
-      <tbody id="hold-body"></tbody>
-    </table>
+  <div class="card col-8" id="kpi-card-wrap">
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="label">持仓腿</div>
+          <div class="kpi-badge" id="kpi-leg-badge">—</div>
+        </div>
+        <div class="value" id="kpi-leg">—</div>
+        <div class="kpi-footer">
+          <div class="kpi-trend-line" id="kpi-leg-trend">—</div>
+          <div class="kpi-desc">当前策略核心持仓方向</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="label">比价 20 日趋势</div>
+          <div class="kpi-badge" id="kpi-trend-badge">—</div>
+        </div>
+        <div class="value" id="kpi-trend">—</div>
+        <div class="kpi-footer">
+          <div class="kpi-trend-line" id="kpi-trend-line">—</div>
+          <div class="kpi-desc">银行相对风险资产近窗动量</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="label">今日实时收益率</div>
+          <div class="kpi-badge" id="kpi-today-badge">—</div>
+        </div>
+        <div class="value" id="kpi-today">—</div>
+        <div class="kpi-footer">
+          <div class="kpi-trend-line" id="kpi-today-line">—</div>
+          <div class="kpi-desc">扣费后当日净值变动</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="label">本月收益率</div>
+          <div class="kpi-badge" id="kpi-mtd-badge">—</div>
+        </div>
+        <div class="value" id="kpi-mtd">—</div>
+        <div class="kpi-footer">
+          <div class="kpi-trend-line" id="kpi-mtd-line">—</div>
+          <div class="kpi-desc">本自然月累计收益</div>
+        </div>
+      </div>
+    </div>
+    <div class="action">
+      <span class="pill" id="action-pill">执行建议</span>
+      <span id="action-text">加载中…</span>
+      <span class="rebal-meta">最近调仓 <b id="kpi-rebal">—</b></span>
+    </div>
   </div>
 
-  <div class="card col-12">
-    <h2>风险水位提示</h2>
-    <div class="sub" id="dev-sub">近3年 z 水位时序 · 横轴时间 · 红区=风险股估值偏高(超买) · 绿区=估值偏低(超卖)</div>
-    <div class="dev-current">
-      <span class="val" id="dev-val">—</span>
-      <span class="zone" id="dev-zone">—</span>
+  <div class="card col-4" id="temp-card-wrap">
+    <h2>市场气温</h2>
+    <div class="sub">0 冰点 · 50 中性 · 100 过热</div>
+    <div class="temp-wrap">
+      <div class="temp-gauge-box">
+        <svg id="temp-gauge" viewBox="0 0 280 170" aria-hidden="true"></svg>
+        <div class="temp-center">
+          <div class="temp-value" id="temp-value">—</div>
+          <div class="temp-tag" id="temp-tag">—</div>
+        </div>
+      </div>
+      <div class="temp-note" aria-label="冷热对应仓位配置">
+        <span class="item"><span class="dot cold"></span><span class="k">冷</span><span class="v">偏向银行腿</span></span>
+        <span class="item"><span class="dot hot"></span><span class="k">热</span><span class="v">偏向风险腿</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card col-12" id="dev-card-wrap">
+    <div class="card-top">
+      <div class="card-top-left">
+        <h2>风险水位提示</h2>
+        <div class="sub" id="dev-sub">近1年 z 水位时序 · 横轴时间 · 红标=市场过热 · 绿标=市场过冷</div>
+      </div>
+      <div class="card-top-right">
+        <label class="year-select-wrap" id="dev-year-wrap" style="display:none">
+          <span class="k">年份</span>
+          <select id="dev-year-select" aria-label="风险水位年份"></select>
+        </label>
+        <div class="card-top-stat" id="dev-current">
+          <span class="val" id="dev-val">—</span>
+          <span class="zone" id="dev-zone">—</span>
+        </div>
+      </div>
     </div>
     <div class="dev-panel">
       <div class="dev-axis-wrap" id="dev-single-wrap">
@@ -384,35 +964,47 @@
         <!-- 长周期按约5年一段动态生成；近一年双图也复用此容器 -->
       </div>
       <div class="dev-legend">
-        <span class="chip"><span class="k">红标</span><span class="v">超买点</span></span>
-        <span class="chip"><span class="k">绿标</span><span class="v">超卖点</span></span>
-        <span class="chip"><span class="k">色带</span><span class="v">超买 / 超卖</span></span>
+        <span class="chip"><span class="k">红标</span><span class="v">市场过热</span></span>
+        <span class="chip"><span class="k">绿标</span><span class="v">市场过冷</span></span>
+        <span class="chip"><span class="k">色带</span><span class="v">过热 / 过冷</span></span>
         <span class="chip"><span class="k">当前</span><span class="v" id="dev-side-z">—</span></span>
       </div>
     </div>
   </div>
 
-  <div class="card col-12">
-    <h2 id="year-title">近一年收益率</h2>
-    <div class="sub" id="year-sub">近12个月逐月持仓分布与月收益（月初实际持仓 · 扣费后）</div>
-    <div class="ann-card" id="year-summary-wrap" style="margin-bottom:16px">
-      <div class="ann-main">
-        <div class="ann-label" id="year-label">近一年累计</div>
-        <div class="ann-value" id="year-ret" style="font-size:32px">—</div>
-        <div class="ann-sub" id="year-ann-sub">旁注为近一年年化</div>
-      </div>
-      <div class="ann-side">
-        <div class="pill-stat">
-          <div class="k" id="year-ann-k">近1年年化</div>
-          <div class="v" id="year-ann">—</div>
-        </div>
-        <div class="pill-stat" id="year-1y-pill" style="display:none">
-          <div class="k">近1年累计</div>
-          <div class="v" id="year-1y-ret">—</div>
+  <div class="card col-12" id="year-card-wrap">
+    <div class="card-top">
+      <div class="card-top-left">
+        <h2 id="year-title">近一年收益率</h2>
+        <div class="sub" id="year-sub">近12个月月收益（扣费后）</div>
+        <div class="card-top-stat" id="year-summary-wrap" style="margin-top:10px; max-width:none; justify-content:flex-start">
+          <span class="val" id="year-ret">—</span>
+          <span class="zone muted" id="year-label">近一年累计收益</span>
+          <span class="ann-chip" id="year-ann-chip">
+            <span class="k" id="year-ann-k">近1年年化</span>
+            <span class="v" id="year-ann">—</span>
+          </span>
+          <span id="year-ann-sub" style="display:none"></span>
+          <span id="year-1y-pill" style="display:none"><span id="year-1y-ret">—</span></span>
         </div>
       </div>
+      <button type="button" class="detail-link" id="year-hold-detail-btn" aria-expanded="false">
+        查看持仓详情 <span class="arrows" aria-hidden="true"><span>▼</span></span>
+      </button>
     </div>
-    <div class="month-list" id="month-list"></div>
+    <div class="month-chart-wrap" id="month-chart-wrap">
+      <div class="month-bars" id="month-bars" aria-hidden="true"></div>
+      <div class="month-x-axis" id="month-x-axis" aria-hidden="true"></div>
+      <div class="month-x-labs" id="month-x-labs" aria-hidden="true"></div>
+    </div>
+    <div class="month-bars-legend" id="month-bars-legend" style="display:none" aria-hidden="true">
+      <span class="chip"><span class="swatch up"></span><span class="k">红色</span><span class="v up">盈利</span></span>
+      <span class="chip"><span class="swatch down"></span><span class="k">绿色</span><span class="v down">亏损</span></span>
+    </div>
+    <div id="month-hold-detail">
+      <div class="detail-title" id="month-hold-detail-title">逐月持仓收益与个股明细</div>
+      <div class="month-list" id="month-list"></div>
+    </div>
   </div>
 
 </div>
@@ -441,22 +1033,43 @@ function pct(x, digits=1) {
   if (x == null || Number.isNaN(x)) return "—";
   return (x * 100).toFixed(digits) + "%";
 }
+
+function retTone(el, x) {
+  if (!el) return;
+  el.classList.remove("ret-up", "ret-down", "ret-flat");
+  if (x == null || Number.isNaN(x)) { el.classList.add("ret-flat"); return; }
+  el.classList.add(x >= 0 ? "ret-up" : "ret-down");
+}
+
 function signedPct(x, digits=2) {
   if (x == null || Number.isNaN(x)) return "—";
   const v = (x * 100).toFixed(digits) + "%";
   return x > 0 ? "+" + v : v;
 }
-function money(x) {
-  if (x == null || Number.isNaN(x)) return "—";
-  return Number(x).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function tempMeta(temp) {
+  if (temp < 30) return { color: "#3ecf6e", tag: "偏冷 · 偏向银行腿", bg: "#3ecf6e", fg: "#0b1020" };
+  if (temp < 45) return { color: "#7fe0a8", tag: "偏凉 · 防守为主", bg: "#7fe0a8", fg: "#0b1020" };
+  if (temp < 55) return { color: "#f0b429", tag: "中性 · 观察切换", bg: "#f0b429", fg: "#111111" };
+  if (temp < 70) return { color: "#f0b429", tag: "偏暖 · 结构性风险偏好", bg: "#f0b429", fg: "#111111" };
+  return { color: "#ff5b5b", tag: "过热 · 风险腿拥挤", bg: "#ff5b5b", fg: "#111111" };
 }
 
-function tempMeta(temp) {
-  if (temp < 30) return { color: "#3ecf6e", tag: "偏冷 · 偏向银行腿", bg: "rgba(62,207,110,.15)", bd: "rgba(62,207,110,.35)" };
-  if (temp < 45) return { color: "#7fe0a8", tag: "偏凉 · 防守为主", bg: "rgba(127,224,168,.12)", bd: "rgba(127,224,168,.3)" };
-  if (temp < 55) return { color: "#f0b429", tag: "中性 · 观察切换", bg: "rgba(240,180,41,.15)", bd: "rgba(240,180,41,.35)" };
-  if (temp < 70) return { color: "#f0b429", tag: "偏暖 · 结构性风险偏好", bg: "rgba(240,180,41,.15)", bd: "rgba(240,180,41,.35)" };
-  return { color: "#ff5b5b", tag: "过热 · 风险腿拥挤", bg: "rgba(255,91,91,.15)", bd: "rgba(255,91,91,.35)" };
+function tempTickColor(t) {
+  // 0→100：青绿 → 绿 → 黄 → 红
+  const x = Math.max(0, Math.min(1, t / 100));
+  const stops = [
+    { p: 0, c: [54, 207, 201] },    // #36cfc9
+    { p: 0.35, c: [62, 207, 110] }, // #3ecf6e
+    { p: 0.6, c: [240, 180, 41] },  // #f0b429
+    { p: 1, c: [255, 91, 91] },     // #ff5b5b
+  ];
+  let a = stops[0], b = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (x >= stops[i].p && x <= stops[i + 1].p) { a = stops[i]; b = stops[i + 1]; break; }
+  }
+  const u = (x - a.p) / Math.max(1e-6, b.p - a.p);
+  const rgb = a.c.map((v, i) => Math.round(v + (b.c[i] - v) * u));
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
 }
 
 function zMeta(z) {
@@ -469,26 +1082,58 @@ function zMeta(z) {
 
 function renderGauge(temp) {
   const svg = document.getElementById("temp-gauge");
-  const arcLen = Math.PI * 80; // semicircle approx for dash math like sample
-  // Use same geometry as sample: path length ~251.3 for full semicircle-ish path
-  const full = 251.3;
-  const fill = Math.max(0, Math.min(1, temp / 100)) * full;
-  // needle angle: 180° sweep from left(180°) to right(0°); temp 0→180°, 100→0°
-  const angle = Math.PI - (temp / 100) * Math.PI; // radians
-  const cx = 100, cy = 105, r = 62;
-  const x2 = cx + r * Math.cos(angle);
-  const y2 = cy - r * Math.sin(angle);
+  if (!svg) return;
+  const t = Math.max(0, Math.min(100, Number(temp) || 0));
+  const cx = 140, cy = 138, r = 96;
+  const tickN = 44;
+  const tickLen = 14;
+  const activeUntil = Math.round((t / 100) * (tickN - 1));
+  let ticks = "";
+  for (let i = 0; i < tickN; i++) {
+    const p = i / (tickN - 1);
+    const ang = Math.PI - p * Math.PI; // 左→右
+    const cos = Math.cos(ang), sin = Math.sin(ang);
+    const x1 = cx + (r - tickLen) * cos;
+    const y1 = cy - (r - tickLen) * sin;
+    const x2 = cx + r * cos;
+    const y2 = cy - r * sin;
+    const on = i <= activeUntil;
+    const col = on ? tempTickColor(p * 100) : "rgba(255,255,255,.14)";
+    const sw = on ? 3.2 : 2.4;
+    ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+      stroke="${col}" stroke-width="${sw}" stroke-linecap="round"/>`;
+  }
+  // 刻度数字 0/25/50/75/100
+  const labels = [0, 25, 50, 75, 100];
+  let labs = "";
+  labels.forEach((v) => {
+    const p = v / 100;
+    const ang = Math.PI - p * Math.PI;
+    const cos = Math.cos(ang), sin = Math.sin(ang);
+    const lx = cx + (r + 16) * cos;
+    const ly = cy - (r + 16) * sin;
+    labs += `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" font-size="11" fill="#71717a" text-anchor="middle">${v}</text>`;
+  });
+  // 三角指针（外指）
+  const ang = Math.PI - (t / 100) * Math.PI;
+  const cos = Math.cos(ang), sin = Math.sin(ang);
+  const tipR = r + 2;
+  const baseR = r - tickLen - 4;
+  const tipX = cx + tipR * cos;
+  const tipY = cy - tipR * sin;
+  const bx = cx + baseR * cos;
+  const by = cy - baseR * sin;
+  const nx = -sin, ny = -cos; // 切线法向
+  const half = 5.5;
+  const p1x = bx + nx * half, p1y = by + ny * half;
+  const p2x = bx - nx * half, p2y = by - ny * half;
+  const tipColor = tempTickColor(t);
+  svg.setAttribute("viewBox", "0 0 280 170");
   svg.innerHTML = `
-    <path d="M 20 105 A 80 80 0 0 1 100 25" fill="none" stroke="#2e8b57" stroke-width="14"
-          stroke-dasharray="50.3 251.3" stroke-dashoffset="0" stroke-linecap="butt"/>
-    <path d="M 20 105 A 80 80 0 0 1 180 105" fill="none" stroke="#d9a429" stroke-width="14"
-          stroke-dasharray="100.5 251.3" stroke-dashoffset="-50.3"/>
-    <path d="M 20 105 A 80 80 0 0 1 180 105" fill="none" stroke="#d9534f" stroke-width="14"
-          stroke-dasharray="100.5 251.3" stroke-dashoffset="-150.8"/>
-    <path d="M 20 105 A 80 80 0 0 1 180 105" fill="none" stroke="#ffffff" stroke-width="14"
-          stroke-dasharray="${fill.toFixed(1)} 251.3" opacity="0.85" style="filter: drop-shadow(0 0 6px rgba(255,255,255,.6))"/>
-    <line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="6" fill="#ffffff"/>
+    ${ticks}
+    ${labs}
+    <polygon points="${tipX.toFixed(1)},${tipY.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}"
+      fill="${tipColor}"/>
   `;
 }
 
@@ -569,14 +1214,15 @@ function drawDevPanel(svg, series, opts = {}) {
     currentZ = null,
     compact = false,
     labelDay = false, // true=点位标到日；false=只标月份
+    monthAxis = false, // 近一年：横轴按月
   } = opts;
   if (!svg) return;
 
-  const W = compact ? 480 : 960;
-  const H = compact ? 320 : 360;
+  const W = compact ? 520 : 1200;
+  const H = compact ? 300 : 340;
   const pad = compact
-    ? { l: 40, r: 14, t: 36, b: 42 }
-    : { l: 54, r: 24, t: 36, b: 52 };
+    ? { l: 36, r: 10, t: 24, b: 42 }
+    : { l: 36, r: 12, t: 24, b: 48 };
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
   const zMin = -3, zMax = 3;
@@ -594,8 +1240,8 @@ function drawDevPanel(svg, series, opts = {}) {
     const yy = yOf(t);
     const label = (t > 0 ? "+" : "") + t.toFixed(0);
     return `
-      <line x1="${pad.l}" y1="${yy}" x2="${pad.l + plotW}" y2="${yy}" stroke="rgba(255,255,255,.06)"/>
-      <text x="${pad.l - 8}" y="${yy + 4}" font-size="${compact ? 10 : 12}" fill="#8b93a7" text-anchor="end">${label}</text>
+      <line x1="${pad.l}" y1="${yy}" x2="${pad.l + plotW}" y2="${yy}" stroke="rgba(255,255,255,.05)"/>
+      <text x="${pad.l - 8}" y="${yy + 4}" font-size="${compact ? 10 : 11}" fill="#71717a" text-anchor="end">${label}</text>
     `;
   }).join("");
 
@@ -610,91 +1256,126 @@ function drawDevPanel(svg, series, opts = {}) {
     return `${parseInt(String(t.m).slice(5), 10)}月`;
   };
 
-  // 点右侧标月份/日期 + σ；年份放到时间轴
+  // 极值点：保留红/绿高亮，线色用绿色主调
   const markSvg = [
     ...coreLows.map(t => {
       const x = xOf(t.i), yy = yOf(t.z);
       const tx = Math.min(x + 8, pad.l + plotW - 2);
       return `
-        <line x1="${x}" y1="${yy}" x2="${x}" y2="${pad.t + plotH}" stroke="rgba(62,207,110,.28)" stroke-width="1" stroke-dasharray="3 3"/>
-        <circle cx="${x}" cy="${yy}" r="5" fill="#3ecf6e" stroke="#0b1020" stroke-width="1.5"/>
-        <text x="${tx}" y="${yy - 2}" font-size="11" fill="#3ecf6e" text-anchor="start" font-weight="700">${markDateText(t)}</text>
-        <text x="${tx}" y="${yy + 12}" font-size="10" fill="#7fe0a8" text-anchor="start">${t.z.toFixed(1)}σ</text>
+        <line x1="${x}" y1="${pad.t}" x2="${x}" y2="${pad.t + plotH}" stroke="rgba(62,207,110,.18)" stroke-width="1"/>
+        <circle cx="${x}" cy="${yy}" r="4.5" fill="#3ecf6e" stroke="#121214" stroke-width="1.5"/>
+        <text x="${tx}" y="${yy - 2}" font-size="10" fill="#3ecf6e" text-anchor="start" font-weight="700">${markDateText(t)}</text>
+        <text x="${tx}" y="${yy + 11}" font-size="10" fill="#7fe0a8" text-anchor="start">${t.z.toFixed(1)}σ</text>
       `;
     }),
     ...coreHighs.map(t => {
       const x = xOf(t.i), yy = yOf(t.z);
       const tx = Math.min(x + 8, pad.l + plotW - 2);
       return `
-        <line x1="${x}" y1="${yy}" x2="${x}" y2="${pad.t + plotH}" stroke="rgba(255,91,91,.28)" stroke-width="1" stroke-dasharray="3 3"/>
-        <circle cx="${x}" cy="${yy}" r="5" fill="#ff5b5b" stroke="#0b1020" stroke-width="1.5"/>
-        <text x="${tx}" y="${yy - 2}" font-size="11" fill="#ff5b5b" text-anchor="start" font-weight="700">${markDateText(t)}</text>
-        <text x="${tx}" y="${yy + 12}" font-size="10" fill="#ff9b9b" text-anchor="start">${t.z >= 0 ? "+" : ""}${t.z.toFixed(1)}σ</text>
+        <line x1="${x}" y1="${pad.t}" x2="${x}" y2="${pad.t + plotH}" stroke="rgba(255,91,91,.16)" stroke-width="1"/>
+        <circle cx="${x}" cy="${yy}" r="4.5" fill="#ff5b5b" stroke="#121214" stroke-width="1.5"/>
+        <text x="${tx}" y="${yy - 2}" font-size="10" fill="#ff5b5b" text-anchor="start" font-weight="700">${markDateText(t)}</text>
+        <text x="${tx}" y="${yy + 11}" font-size="10" fill="#ff9b9b" text-anchor="start">${t.z >= 0 ? "+" : ""}${t.z.toFixed(1)}σ</text>
       `;
     }),
   ].join("");
 
-  // 时间轴：按年标注
-  const yearMarks = [];
-  const seenYear = new Set();
-  series.forEach((p, i) => {
-    const y = String(p.d).slice(0, 4);
-    if (seenYear.has(y)) return;
-    seenYear.add(y);
-    // 用该年首个点作为刻度位置
-    yearMarks.push({ i, label: y });
-  });
-  // 确保末日年份也有（若最后一年只有一个点已在内）
-  if (n > 1) {
-    const lastY = String(series[n - 1].d).slice(0, 4);
-    if (!yearMarks.some(m => m.label === lastY)) {
-      yearMarks.push({ i: n - 1, label: lastY });
+  // 时间轴：近一年按月；否则按年
+  let xTickSvg = "";
+  if (monthAxis && n > 1) {
+    const monthMarks = [];
+    const seenM = new Set();
+    series.forEach((p, i) => {
+      const m = String(p.d).slice(0, 7);
+      if (seenM.has(m)) return;
+      seenM.add(m);
+      const yyyy = String(p.d).slice(0, 4);
+      const mm = parseInt(String(p.d).slice(5, 7), 10);
+      monthMarks.push({ i, label: `${mm}月`, year: yyyy, mm });
+    });
+    // 过密时抽样
+    const step = monthMarks.length > 14 ? 2 : 1;
+    xTickSvg = monthMarks.filter((_, idx) => idx % step === 0 || idx === monthMarks.length - 1).map((m, idx, arr) => {
+      const x = xOf(m.i);
+      const prevY = idx > 0 ? arr[idx - 1].year : "";
+      const showYear = idx === 0 || idx === arr.length - 1 || m.year !== prevY || m.mm === 1;
+      return `
+        <line x1="${x}" y1="${pad.t + plotH}" x2="${x}" y2="${pad.t + plotH + 5}" stroke="#52525b"/>
+        ${showYear ? `<text x="${x}" y="${pad.t + plotH + 14}" font-size="9" fill="#36cfc9" text-anchor="middle" font-weight="700">${m.year}</text>` : ""}
+        <text x="${x}" y="${pad.t + plotH + (showYear ? 26 : 20)}" font-size="10" fill="#a1a1aa" text-anchor="middle">${m.label}</text>
+      `;
+    }).join("");
+  } else {
+    const yearMarks = [];
+    const seenYear = new Set();
+    series.forEach((p, i) => {
+      const y = String(p.d).slice(0, 4);
+      if (seenYear.has(y)) return;
+      seenYear.add(y);
+      yearMarks.push({ i, label: y });
+    });
+    if (n > 1) {
+      const lastY = String(series[n - 1].d).slice(0, 4);
+      if (!yearMarks.some(m => m.label === lastY)) {
+        yearMarks.push({ i: n - 1, label: lastY });
+      }
     }
+    xTickSvg = yearMarks.map(m => {
+      const x = xOf(m.i);
+      return `
+        <line x1="${x}" y1="${pad.t + plotH}" x2="${x}" y2="${pad.t + plotH + 5}" stroke="#52525b"/>
+        <text x="${x}" y="${pad.t + plotH + 20}" font-size="${compact ? 10 : 11}" fill="#a1a1aa" text-anchor="middle" font-weight="600">${m.label}</text>
+      `;
+    }).join("");
   }
-  const xTickSvg = yearMarks.map(m => {
-    const x = xOf(m.i);
-    return `
-      <line x1="${x}" y1="${pad.t + plotH}" x2="${x}" y2="${pad.t + plotH + 6}" stroke="#8b93a7"/>
-      <text x="${x}" y="${pad.t + plotH + 22}" font-size="${compact ? 10 : 12}" fill="#aab2c5" text-anchor="middle" font-weight="600">${m.label}</text>
-    `;
-  }).join("");
 
   const y0 = yOf(0);
   let line = "";
   series.forEach((p, i) => {
     line += `${i === 0 ? "M" : "L"} ${xOf(i).toFixed(1)} ${yOf(p.z).toFixed(1)} `;
   });
-  let area = `M ${xOf(0).toFixed(1)} ${y0.toFixed(1)} `;
+  // 面积：贴底渐隐（参考图）
+  let area = `M ${xOf(0).toFixed(1)} ${pad.t + plotH} `;
   series.forEach((p, i) => { area += `L ${xOf(i).toFixed(1)} ${yOf(p.z).toFixed(1)} `; });
-  area += `L ${xOf(n - 1).toFixed(1)} ${y0.toFixed(1)} Z`;
+  area += `L ${xOf(n - 1).toFixed(1)} ${pad.t + plotH} Z`;
 
   let currentSvg = "";
   if (showCurrent && n) {
+    const last = series[n - 1];
     const lastX = xOf(n - 1);
-    const lastY = yOf(series[n - 1].z);
-    const zTxt = currentZ == null
-      ? ""
-      : ((currentZ >= 0 ? "+" : "") + Number(currentZ).toFixed(2) + "σ");
+    const lastY = yOf(last.z);
+    const zNum = currentZ == null ? last.z : currentZ;
+    const zTxt = (zNum >= 0 ? "+" : "") + Number(zNum).toFixed(2) + "σ";
+    const tipW = 118, tipH = 42;
+    let tipX = lastX - tipW / 2;
+    tipX = Math.max(pad.l, Math.min(tipX, pad.l + plotW - tipW));
+    const tipY = Math.max(pad.t + 4, lastY - tipH - 14);
     currentSvg = `
-      <circle cx="${lastX}" cy="${lastY}" r="3.5" fill="#36cfc9" stroke="#0b1020" stroke-width="1.2"/>
-      ${zTxt ? `<text x="${Math.min(lastX + 8, pad.l + plotW - 4)}" y="${lastY - 8}" font-size="11" fill="#36cfc9" font-weight="700">当前 ${zTxt}</text>` : ""}
+      <line x1="${lastX}" y1="${pad.t}" x2="${lastX}" y2="${pad.t + plotH}" stroke="rgba(255,255,255,.18)" stroke-width="1"/>
+      <circle cx="${lastX}" cy="${lastY}" r="5" fill="#36cfc9" stroke="#121214" stroke-width="2"/>
+      <rect x="${tipX}" y="${tipY}" width="${tipW}" height="${tipH}" rx="8" fill="#1a1a1c" stroke="rgba(255,255,255,.08)"/>
+      <text x="${tipX + 10}" y="${tipY + 16}" font-size="10" fill="#71717a">${String(last.d || "").slice(0, 10)}</text>
+      <text x="${tipX + 10}" y="${tipY + 32}" font-size="13" fill="#36cfc9" font-weight="700">${zTxt}</text>
     `;
   }
 
+  const gid = `devFill_${Math.random().toString(36).slice(2, 8)}`;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("height", String(H));
   svg.innerHTML = `
-    ${band(3, 2, "rgba(217,83,79,.20)")}
-    ${band(2, 0.5, "rgba(217,83,79,.08)")}
-    ${band(0.5, -0.5, "rgba(255,255,255,.03)")}
-    ${band(-0.5, -2, "rgba(46,139,87,.08)")}
-    ${band(-2, -3, "rgba(46,139,87,.20)")}
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#36cfc9" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#36cfc9" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${band(3, 2, "rgba(217,83,79,.10)")}
+    ${band(-2, -3, "rgba(46,139,87,.10)")}
     ${yTickSvg}
-    <line x1="${pad.l}" y1="${y0}" x2="${pad.l + plotW}" y2="${y0}" stroke="#ffffff" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
-    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t + plotH}" stroke="#8b93a7" stroke-width="1"/>
-    <line x1="${pad.l}" y1="${pad.t + plotH}" x2="${pad.l + plotW}" y2="${pad.t + plotH}" stroke="#8b93a7" stroke-width="1"/>
-    <path d="${area}" fill="rgba(54,207,201,.08)"/>
-    <path d="${line}" fill="none" stroke="#36cfc9" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${pad.l}" y1="${y0}" x2="${pad.l + plotW}" y2="${y0}" stroke="rgba(255,255,255,.22)" stroke-width="1" stroke-dasharray="4 4"/>
+    <line x1="${pad.l}" y1="${pad.t + plotH}" x2="${pad.l + plotW}" y2="${pad.t + plotH}" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+    <path d="${area}" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="#36cfc9" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     ${markSvg}
     ${xTickSvg}
     ${currentSvg}
@@ -710,6 +1391,23 @@ function filterHistYears(series, years) {
   const out = series.filter(p => String(p.d) >= startStr);
   return out.length ? out : series.slice();
 }
+
+function yearsFromHist(series) {
+  const set = new Set();
+  (series || []).forEach(p => {
+    const y = String(p.d || "").slice(0, 4);
+    if (/^\d{4}$/.test(y)) set.add(y);
+  });
+  return Array.from(set).sort((a, b) => b.localeCompare(a));
+}
+
+function filterHistByCalendarYear(series, year) {
+  const y = String(year || "");
+  const out = (series || []).filter(p => String(p.d || "").slice(0, 4) === y);
+  return out.length ? out : (series || []).slice();
+}
+
+let __DEV_CTX = { z: 0, hist: [], horizonYears: 0 };
 
 /** 长周期水位：按约 segmentYears 年一段，从远到近切段（10年→2段，20年→4段）。 */
 function splitHistBySegmentYears(series, years, segmentYears = 5) {
@@ -775,68 +1473,70 @@ function renderDev(z, hist, years, opts = {}) {
   zone.textContent = zm.label;
   zone.style.color = zm.color;
   zone.style.background = zm.bg;
+  zone.style.borderColor = zm.color;
   const sideZ = document.getElementById("dev-side-z");
   sideZ.textContent = zTxt;
   sideZ.style.color = zm.color;
 
   const series = (hist && hist.length) ? hist.slice() : [{ d: "now", z }];
-  const show1yExtra = !!opts.zPanel1y;
-  const useLongSplit = !!(years && years >= 10 && series.length > 40);
+  __DEV_CTX = { z, hist: series, horizonYears: Number(opts.horizonYears || years || 0) };
+
   const singleWrap = document.getElementById("dev-single-wrap");
   const dualWrap = document.getElementById("dev-dual-wrap");
+  const yearWrap = document.getElementById("dev-year-wrap");
+  const yearSel = document.getElementById("dev-year-select");
+  const isHorizon = !!opts.horizonYears;
 
-  if (useLongSplit) {
-    const segments = splitHistBySegmentYears(series, years, 5);
-    const nSeg = segments.length;
-    if (singleWrap) singleWrap.style.display = "none";
-    if (dualWrap) dualWrap.style.display = "grid";
-    ensureDevPanels(nSeg);
-    document.getElementById("dev-sub").textContent =
-      `近${years}年拆成${nSeg}段各约5年 · 红标=超买点 · 绿标=超卖点（优先 |z|≥2）`;
+  if (singleWrap) singleWrap.style.display = "";
+  if (dualWrap) dualWrap.style.display = "none";
 
-    segments.forEach((seg, i) => {
-      const title = document.getElementById(`dev-title-${i + 1}`);
-      if (title && seg.length) title.textContent = segmentLabel(i, nSeg, seg);
-      drawDevPanel(document.getElementById(`dev-chart-${i + 1}`), seg, {
-        compact: false,
-        showCurrent: i === nSeg - 1,
-        currentZ: i === nSeg - 1 ? z : null,
-      });
-    });
-  } else if (show1yExtra) {
-    // 近一年版：上=近N年上下文，下=近一年放大
-    if (singleWrap) singleWrap.style.display = "none";
-    if (dualWrap) dualWrap.style.display = "grid";
-    ensureDevPanels(2);
-    const ctxYears = years || 3;
-    const ctxSeries = filterHistYears(series, ctxYears);
-    const y1Series = filterHistYears(series, 1);
+  const drawYear = (year) => {
+    const ySeries = filterHistByCalendarYear(series, year);
+    const a = ySeries.length ? String(ySeries[0].d).slice(0, 10) : "—";
+    const b = ySeries.length ? String(ySeries[ySeries.length - 1].d).slice(0, 10) : "—";
+    const last = ySeries.length ? ySeries[ySeries.length - 1] : null;
+    const curZ = (last && last.z != null) ? last.z : z;
     document.getElementById("dev-sub").textContent =
-      `上图近${ctxYears}年上下文 · 下图近1年放大 · 红标=超买点 · 绿标=超卖点（优先 |z|≥2）`;
-    const t1 = document.getElementById("dev-title-1");
-    const t2 = document.getElementById("dev-title-2");
-    if (t1 && ctxSeries.length) {
-      t1.textContent = `近${ctxYears}年  ${String(ctxSeries[0].d).slice(0, 7)} → ${String(ctxSeries[ctxSeries.length - 1].d).slice(0, 7)}`;
-    }
-    if (t2 && y1Series.length) {
-      t2.textContent = `近1年  ${String(y1Series[0].d).slice(0, 7)} → ${String(y1Series[y1Series.length - 1].d).slice(0, 7)}`;
-    }
-    drawDevPanel(document.getElementById("dev-chart-1"), ctxSeries, { compact: false, showCurrent: false });
-    drawDevPanel(document.getElementById("dev-chart-2"), y1Series, {
+      `${year}年 z 水位 · ${a} → ${b} · 红标=市场过热 · 绿标=市场过冷（优先 |z|≥2）`;
+    const zmY = zMeta(curZ);
+    const zTxtY = (curZ >= 0 ? "+" : "") + Number(curZ).toFixed(2) + "σ";
+    document.getElementById("dev-val").textContent = zTxtY;
+    document.getElementById("dev-val").style.color = zmY.color;
+    zone.textContent = zmY.label;
+    zone.style.color = zmY.color;
+    zone.style.background = zmY.bg;
+    zone.style.borderColor = zmY.color;
+    sideZ.textContent = zTxtY;
+    sideZ.style.color = zmY.color;
+    drawDevPanel(document.getElementById("dev-chart"), ySeries, {
       compact: false,
       showCurrent: true,
-      currentZ: z,
-      labelDay: true, // 近一年图高低点标到日
+      currentZ: curZ,
+      labelDay: true,
+      monthAxis: true,
     });
+  };
+
+  if (isHorizon && yearWrap && yearSel) {
+    const ys = yearsFromHist(series);
+    yearWrap.style.display = ys.length ? "" : "none";
+    yearSel.innerHTML = ys.map(y => `<option value="${y}">${y}</option>`).join("");
+    if (!ys.includes(yearSel.value)) yearSel.value = ys[0] || "";
+    yearSel.onchange = () => drawYear(yearSel.value);
+    drawYear(yearSel.value || ys[0]);
   } else {
-    if (singleWrap) singleWrap.style.display = "";
-    if (dualWrap) dualWrap.style.display = "none";
+    if (yearWrap) yearWrap.style.display = "none";
+    const y1Series = filterHistYears(series, 1);
+    const a = y1Series.length ? String(y1Series[0].d).slice(0, 10) : "—";
+    const b = y1Series.length ? String(y1Series[y1Series.length - 1].d).slice(0, 10) : "—";
     document.getElementById("dev-sub").textContent =
-      `近${years || 3}年 z 水位时序 · 红标=超买点 · 绿标=超卖点（优先 |z|≥2）`;
-    drawDevPanel(document.getElementById("dev-chart"), series, {
+      `近1年 z 水位 · ${a} → ${b} · 红标=市场过热 · 绿标=市场过冷（优先 |z|≥2）`;
+    drawDevPanel(document.getElementById("dev-chart"), y1Series, {
       compact: false,
       showCurrent: true,
       currentZ: z,
+      labelDay: true,
+      monthAxis: true,
     });
   }
 }
@@ -864,7 +1564,9 @@ function render(d) {
   }
 
   // 长周期（如10年期）看板：顶部三卡；不展示原版 KPI / 气温 / 配置 / 持仓明细
+  // 精简近一年（slim_1y）：年化与气温并排；隐藏配置饼图
   const isHorizon = !!d.horizon_years;
+  const isSlim1y = !!d.slim_1y;
   const hzWrap = document.getElementById("horizon-kpi-wrap");
   const annWrap = document.getElementById("ann-card-wrap");
   const kpiWrap = document.getElementById("kpi-card-wrap");
@@ -875,8 +1577,64 @@ function render(d) {
   if (annWrap) annWrap.style.display = isHorizon ? "none" : "";
   if (kpiWrap) kpiWrap.style.display = isHorizon ? "none" : "";
   if (tempWrap) tempWrap.style.display = isHorizon ? "none" : "";
-  if (allocWrap) allocWrap.style.display = isHorizon ? "none" : "";
+  if (allocWrap) allocWrap.style.display = (isHorizon || isSlim1y) ? "none" : "";
   if (holdWrap) holdWrap.style.display = isHorizon ? "none" : "";
+  // 排版：年化整行 → 左(KPI+持仓) / 右(气温+配置，均分左侧总高)
+  if (annWrap) {
+    annWrap.classList.remove("col-8", "col-7", "col-6", "col-5", "col-4");
+    annWrap.classList.add("col-12");
+  }
+  (function ensureMainSplit() {
+    if (isHorizon) {
+      const old = document.getElementById("main-split");
+      if (old) {
+        const parent = old.parentNode;
+        while (old.firstChild) {
+          const col = old.firstChild;
+          while (col.firstChild) parent.insertBefore(col.firstChild, old);
+          old.removeChild(col);
+        }
+        old.remove();
+      }
+      return;
+    }
+    if (!kpiWrap || !holdWrap || !tempWrap) return;
+    let shell = document.getElementById("main-split");
+    if (!shell) {
+      shell = document.createElement("div");
+      shell.id = "main-split";
+      shell.className = "main-split";
+      const anchor = annWrap || kpiWrap;
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(shell, anchor.nextSibling);
+    }
+    let left = shell.querySelector(".split-left");
+    let right = shell.querySelector(".split-right");
+    if (!left) {
+      left = document.createElement("div");
+      left.className = "split-left";
+      shell.appendChild(left);
+    }
+    if (!right) {
+      right = document.createElement("div");
+      right.className = "split-right";
+      shell.appendChild(right);
+    }
+    [kpiWrap, holdWrap, tempWrap, allocWrap].forEach((el) => {
+      if (!el) return;
+      el.classList.remove("col-12", "col-8", "col-7", "col-6", "col-5", "col-4", "col-3");
+    });
+    if (kpiWrap.parentNode !== left) left.appendChild(kpiWrap);
+    if (holdWrap.parentNode !== left) left.appendChild(holdWrap);
+    if (tempWrap.parentNode !== right) right.appendChild(tempWrap);
+    if (allocWrap && allocWrap.style.display !== "none" && allocWrap.parentNode !== right) {
+      right.appendChild(allocWrap);
+    }
+    if (!allocWrap || allocWrap.style.display === "none") {
+      right.style.gridTemplateRows = "1fr";
+    } else {
+      right.style.gridTemplateRows = "1fr 1fr";
+    }
+  })();
 
   document.getElementById("asof").textContent = asofText;
   document.getElementById("hdr-exp").textContent = pct(d.exposure, 0);
@@ -920,15 +1678,14 @@ function render(d) {
     // 自然年至今：主指标用 YTD，不展示近一年
     const cy = d.calendar_year;
     const annTitle = document.getElementById("ann-title");
-    const annSub = document.getElementById("ann-sub");
     if (annTitle) annTitle.textContent = `${cy}年累计收益率`;
-    if (annSub) annSub.textContent =
-      `${cy}-01-01 → ${d.asof} · 月末 BME · 扣费后；旁注今年年化与本月`;
     const ytd = d.ytd_return;
     const annEl = document.getElementById("ann-value");
     if (annEl) {
       annEl.textContent = signedPct(ytd, 1);
       annEl.style.color = (ytd == null || Number.isNaN(ytd)) ? "#e6e9f2" : (ytd >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(annEl, ytd);
+      retTone(document.getElementById("ann-card-wrap"), ytd);
     }
     const a1 = document.getElementById("ann-1y");
     const k1 = document.getElementById("ann-side-k1");
@@ -936,6 +1693,7 @@ function render(d) {
     if (a1) {
       a1.textContent = signedPct(d.ann_return, 1);
       a1.style.color = (d.ann_return == null || Number.isNaN(d.ann_return)) ? "#e6e9f2" : (d.ann_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(a1.closest(".pill-stat"), d.ann_return);
     }
     const ay = document.getElementById("ann-ytd");
     const ayWrap = ay ? ay.closest(".pill-stat") : null;
@@ -944,6 +1702,7 @@ function render(d) {
     if (ay) {
       ay.textContent = signedPct(d.mtd_return, 1);
       ay.style.color = (d.mtd_return == null || Number.isNaN(d.mtd_return)) ? "#e6e9f2" : (d.mtd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(ay.closest(".pill-stat"), d.mtd_return);
     }
   } else {
     // 主指标：近12个月真实年化（不再用当年至今折年）
@@ -952,43 +1711,91 @@ function render(d) {
     if (annEl) {
       annEl.textContent = signedPct(ann, 1);
       annEl.style.color = (ann == null || Number.isNaN(ann)) ? "#e6e9f2" : (ann >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(annEl, ann);
+      retTone(document.getElementById("ann-card-wrap"), ann);
     }
     const a1 = document.getElementById("ann-1y");
     if (a1) {
       a1.textContent = signedPct(d.return_1y, 1);
       a1.style.color = (d.return_1y == null || Number.isNaN(d.return_1y)) ? "#e6e9f2" : (d.return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(a1.closest(".pill-stat"), d.return_1y);
     }
     const ay = document.getElementById("ann-ytd");
     if (ay) {
       ay.textContent = signedPct(d.ytd_return, 1);
       ay.style.color = (d.ytd_return == null || Number.isNaN(d.ytd_return)) ? "#e6e9f2" : (d.ytd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(ay.closest(".pill-stat"), d.ytd_return);
     }
   }
 
+  const valueSector = d.value_sector || "";
   const legName = d.leg === "bank"
     ? "银行腿"
-    : (d.leg === "risk_etf" ? "风险ETF"
-      : (d.leg === "blend" ? "风险+银行配比" : "风险腿"));
+    : (d.leg === "value"
+      ? (valueSector ? `价值腿·${valueSector}` : "价值腿")
+      : (d.leg === "risk_etf" ? "风险ETF"
+        : (d.leg === "blend" ? "风险+银行配比" : "风险腿")));
+  const isDefensive = (d.leg === "bank" || d.leg === "value" || d.leg === "blend");
   document.getElementById("kpi-leg").textContent = legName;
-  document.getElementById("kpi-leg").style.color =
-    d.leg === "bank" ? "#f0b429" : (d.leg === "blend" ? "#f0b429" : "#36cfc9");
+  document.getElementById("kpi-leg").style.color = isDefensive ? "#f0b429" : "#36cfc9";
+  const legBadge = document.getElementById("kpi-leg-badge");
+  const expPct = (d.exposure != null && !Number.isNaN(d.exposure))
+    ? pct(d.exposure, 0)
+    : ((d.risk_weight != null && d.bank_weight != null)
+      ? pct(Number(d.risk_weight) + Number(d.bank_weight), 0)
+      : "—");
+  legBadge.innerHTML = `<span class="arrow">●</span>${expPct}`;
+  const legTrend = document.getElementById("kpi-leg-trend");
+  legTrend.innerHTML = isDefensive
+    ? `偏向防御配置 <span class="arrow">↘</span>`
+    : `偏向风险配置 <span class="arrow">↗</span>`;
 
+  const trendUp = d.trend > 0;
   document.getElementById("kpi-trend").textContent = signedPct(d.trend, 2);
-  document.getElementById("kpi-trend").style.color = d.trend > 0 ? "#ff5b5b" : "#3ecf6e";
+  document.getElementById("kpi-trend").style.color = trendUp ? "#ff5b5b" : "#3ecf6e";
+  const trendBadge = document.getElementById("kpi-trend-badge");
+  trendBadge.innerHTML = trendUp
+    ? `<span class="arrow">↑</span>${signedPct(d.trend, 1)}`
+    : `<span class="arrow">↓</span>${signedPct(d.trend, 1)}`;
+  document.getElementById("kpi-trend-line").innerHTML = trendUp
+    ? `近窗动量向上 <span class="arrow">↗</span>`
+    : `近窗动量向下 <span class="arrow">↘</span>`;
 
   document.getElementById("kpi-rebal").textContent = d.last_rebal;
 
   const todayEl = document.getElementById("kpi-today");
+  const todayOk = !(d.today_return == null || Number.isNaN(d.today_return));
+  const todayUp = todayOk && d.today_return >= 0;
   todayEl.textContent = signedPct(d.today_return, 2);
-  todayEl.style.color = (d.today_return == null || Number.isNaN(d.today_return))
-    ? "#e6e9f2"
-    : (d.today_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+  todayEl.style.color = !todayOk ? "#e6e9f2" : (todayUp ? "#ff5b5b" : "#3ecf6e");
+  const todayBadge = document.getElementById("kpi-today-badge");
+  todayBadge.innerHTML = !todayOk
+    ? "—"
+    : (todayUp
+      ? `<span class="arrow">↑</span>${signedPct(d.today_return, 1)}`
+      : `<span class="arrow">↓</span>${signedPct(d.today_return, 1)}`);
+  document.getElementById("kpi-today-line").innerHTML = !todayOk
+    ? "暂无当日收益"
+    : (todayUp
+      ? `今日收益上行 <span class="arrow">↗</span>`
+      : `今日收益下行 <span class="arrow">↘</span>`);
 
   const mtdEl = document.getElementById("kpi-mtd");
+  const mtdOk = !(d.mtd_return == null || Number.isNaN(d.mtd_return));
+  const mtdUp = mtdOk && d.mtd_return >= 0;
   mtdEl.textContent = signedPct(d.mtd_return, 2);
-  mtdEl.style.color = (d.mtd_return == null || Number.isNaN(d.mtd_return))
-    ? "#e6e9f2"
-    : (d.mtd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+  mtdEl.style.color = !mtdOk ? "#e6e9f2" : (mtdUp ? "#ff5b5b" : "#3ecf6e");
+  const mtdBadge = document.getElementById("kpi-mtd-badge");
+  mtdBadge.innerHTML = !mtdOk
+    ? "—"
+    : (mtdUp
+      ? `<span class="arrow">↑</span>${signedPct(d.mtd_return, 1)}`
+      : `<span class="arrow">↓</span>${signedPct(d.mtd_return, 1)}`);
+  document.getElementById("kpi-mtd-line").innerHTML = !mtdOk
+    ? "暂无本月收益"
+    : (mtdUp
+      ? `本月收益上行 <span class="arrow">↗</span>`
+      : `本月收益下行 <span class="arrow">↘</span>`);
 
   // action
   const action = document.getElementById("action-text");
@@ -1025,13 +1832,13 @@ function render(d) {
   const tag = document.getElementById("temp-tag");
   tag.textContent = tm.tag;
   tag.style.color = tm.color;
-  tag.style.background = tm.bg;
-  tag.style.borderColor = tm.bd;
+  tag.style.background = "transparent";
+  tag.style.borderColor = tm.color;
 
   // allocation donut（怎么输：按 bank_weight/risk_weight 连续配比）
   const bankPct = (d.bank_weight != null)
     ? d.bank_weight
-    : (d.leg === "bank" ? d.exposure : 0);
+    : ((d.leg === "bank" || d.leg === "value") ? d.exposure : 0);
   const riskPct = (d.risk_weight != null)
     ? d.risk_weight
     : ((d.leg === "risk" || d.leg === "risk_etf") ? d.exposure : 0);
@@ -1042,9 +1849,14 @@ function render(d) {
     `conic-gradient(#f0b429 0 ${bEnd}%, #36cfc9 ${bEnd}% ${rEnd}%, #5a647a ${rEnd}% 100%)`;
   document.getElementById("donut-exp").textContent = pct(d.exposure, 0);
   const riskHint = d.variant === "zenmeshu" ? "Z连续配比·调整深优先" : "流动性×动量";
-  const bankHint = d.variant === "zenmeshu" ? "Z升高加仓银行" : "分配权锚";
+  const bankHint = d.variant === "zenmeshu"
+    ? "Z升高加仓银行"
+    : (d.variant === "hongdeng"
+      ? (d.value_rule || "50%银行+六方向近窗占优")
+      : "分配权锚");
+  const defLabel = d.variant === "hongdeng" ? "价值腿" : "银行腿";
   document.getElementById("legend").innerHTML = `
-    <div class="item"><span class="dot" style="background:#f0b429"></span>银行腿 <small>${bankHint}</small>
+    <div class="item"><span class="dot" style="background:#f0b429"></span>${defLabel} <small>${bankHint}</small>
       <span class="pct" style="color:#f0b429">${pct(bankPct,0)}</span></div>
     <div class="item"><span class="dot" style="background:#36cfc9"></span>风险腿 <small>${riskHint}</small>
       <span class="pct" style="color:#36cfc9">${pct(riskPct,0)}</span></div>
@@ -1052,105 +1864,285 @@ function render(d) {
       <span class="pct" style="color:#aab2c5">${pct(cashPct,0)}</span></div>
   `;
 
-  renderDev(d.z, d.z_hist || [], d.z_years || 3, { zPanel1y: !!d.z_panel_1y });
+  renderDev(d.z, d.z_hist || [], d.z_years || 3, {
+    zPanel1y: !!d.z_panel_1y,
+    slim1y: !!d.slim_1y,
+    horizonYears: d.horizon_years || 0,
+  });
 
-  // 近一年逐月 / 长周期：10年收益率列表
+  // 近一年逐月 / 长周期逐年：柱图 + 右上角详情
   const useHorizon = !!(d.horizon_years && (d.yearly_review || []).length);
   const yRet = document.getElementById("year-ret");
   const yAnn = document.getElementById("year-ann");
   const yearSummary = document.getElementById("year-summary-wrap");
-  if (useHorizon) {
-    document.getElementById("year-title").textContent = `${d.horizon_years}年收益率`;
-    document.getElementById("year-sub").textContent =
-      `区间 ${d.horizon_start || "—"} → ${d.asof} · 逐年扣费后收益（近→远）`;
-    if (yearSummary) yearSummary.style.display = "none";
-    const years = (d.yearly_review || []).slice().reverse();
-    const legText = (leg) => leg === "bank" ? "银行腿"
+  const holdBtn = document.getElementById("year-hold-detail-btn");
+  const holdDetail = document.getElementById("month-hold-detail");
+  const detailTitle = document.getElementById("month-hold-detail-title");
+  const monthList = document.getElementById("month-list");
+  const bars = document.getElementById("month-bars");
+  const barsLeg = document.getElementById("month-bars-legend");
+  const xAxis = document.getElementById("month-x-axis");
+  const xLabs = document.getElementById("month-x-labs");
+
+  const legNameOf = (leg) => leg === "bank" ? "银行腿"
+    : (leg === "value" ? "价值腿"
       : (leg === "risk_etf" ? "风险ETF"
-        : (leg === "blend" ? "配比" : (leg === "risk" ? "风险腿" : "—")));
-    const legTag = (leg) => leg === "bank"
-      ? '<span class="tag tag-bank">银行腿</span>'
+        : (leg === "blend" ? "配比" : (leg === "risk" ? "风险腿" : "—"))));
+  const legTagOf = (leg) => leg === "bank"
+    ? '<span class="tag tag-bank">银行腿</span>'
+    : (leg === "value"
+      ? '<span class="tag tag-bank">价值腿</span>'
       : (leg === "risk_etf" || leg === "risk"
         ? '<span class="tag tag-risk">风险腿</span>'
-        : (leg === "blend" ? '<span class="tag tag-bank">配比</span>' : ""));
-    document.getElementById("month-list").innerHTML = `
-      <table class="year-ret-table">
-        <thead>
-          <tr><th>年份</th><th>年收益</th><th>核心持仓腿</th><th>仓位</th></tr>
-        </thead>
-        <tbody>
-          ${years.map(m => {
-            const retCls = m.return > 0 ? "up" : (m.return < 0 ? "down" : "flat");
-            return `<tr>
-              <td class="year">${m.year}</td>
-              <td class="ret ${retCls}">${signedPct(m.return, 2)}</td>
-              <td>${legTag(m.leg) || legText(m.leg)}</td>
-              <td style="color:#aab2c5">${pct(m.exposure, 0)}</td>
-            </tr>`;
-          }).join("")}
-        </tbody>
-      </table>`;
+        : (leg === "blend" ? '<span class="tag tag-bank">配比</span>' : "")));
+
+  const paintBars = (periods, { yearMode = false } = {}) => {
+    if (!bars) return;
+    const vals = periods.map(m => Number(m.return) || 0);
+    const maxPos = Math.max(0.01, ...vals.filter(v => v > 0), 0.01);
+    const maxNeg = Math.max(0.01, ...vals.filter(v => v < 0).map(v => Math.abs(v)), 0.01);
+    const n = Math.max(1, periods.length);
+    bars.style.display = periods.length ? "grid" : "none";
+    bars.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    if (barsLeg) {
+      barsLeg.style.display = periods.length ? "flex" : "none";
+      barsLeg.style.justifyContent = "center";
+      barsLeg.style.width = "100%";
+      barsLeg.setAttribute("aria-hidden", periods.length ? "false" : "true");
+    }
+    const maxBarPx = 72;
+    const barH = (v) => {
+      if (v === 0) return 4;
+      const base = v > 0 ? maxPos : maxNeg;
+      const ratio = Math.min(1, Math.abs(v) / base);
+      const soft = Math.pow(ratio, 0.65);
+      return Math.max(16, Math.round(soft * maxBarPx));
+    };
+    bars.innerHTML = periods.map(m => {
+      const v = Number(m.return) || 0;
+      const h = barH(v);
+      const valTxt = signedPct(m.return, 1);
+      const tipKey = yearMode ? (m.year || m.month) : m.month;
+      const tip = `${tipKey} ${valTxt}（${v > 0 ? "盈利" : (v < 0 ? "亏损" : "持平")}）`;
+      const posBar = v > 0
+        ? `<div class="bar-val up">${valTxt}</div><div class="bar up" style="height:${h}px"></div>`
+        : (v === 0 ? `<div class="bar flat"></div>` : "");
+      const negBar = v < 0
+        ? `<div class="bar down" style="height:${h}px"></div><div class="bar-val down">${valTxt}</div>`
+        : "";
+      return `<div class="bar-cell" title="${tip}">
+        <div class="bar-slot pos">${posBar}</div>
+        <div class="bar-slot neg">${negBar}</div>
+      </div>`;
+    }).join("");
+    if (xAxis) {
+      xAxis.style.display = periods.length ? "block" : "none";
+      xAxis.setAttribute("aria-hidden", periods.length ? "false" : "true");
+    }
+    if (xLabs) {
+      xLabs.style.display = periods.length ? "grid" : "none";
+      xLabs.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+      xLabs.setAttribute("aria-hidden", periods.length ? "false" : "true");
+      if (yearMode) {
+        xLabs.innerHTML = periods.map(m => {
+          const y = String(m.year || m.month || "");
+          return `<div class="lab"><span class="m">${y}</span></div>`;
+        }).join("");
+      } else {
+        xLabs.innerHTML = periods.map((m, idx) => {
+          const raw = String(m.month || "");
+          const yyyy = raw.length >= 4 ? raw.slice(0, 4) : "";
+          const mm = raw.length >= 7 ? parseInt(raw.slice(5, 7), 10) : NaN;
+          const prevY = idx > 0 ? String(periods[idx - 1].month || "").slice(0, 4) : "";
+          const showYear = !!yyyy && (
+            idx === 0 || idx === periods.length - 1 || yyyy !== prevY || mm === 1
+          );
+          const mTxt = Number.isNaN(mm) ? (raw.replace("-", ".") || raw) : (mm + "月");
+          return `<div class="lab${showYear ? " has-year" : ""}">${showYear ? `<span class="y">${yyyy}</span>` : ""}<span class="m">${mTxt}</span></div>`;
+        }).join("");
+      }
+    }
+  };
+
+  let periods = [];
+  let detailMode = "holdings"; // holdings | yearly
+
+  if (useHorizon) {
+    detailMode = "yearly";
+    document.getElementById("year-title").textContent = `${d.horizon_years}年收益率`;
+    document.getElementById("year-sub").textContent =
+      `区间 ${d.horizon_start || "—"} → ${d.asof} · 逐年扣费后收益`;
+    if (yearSummary) yearSummary.style.display = "";
+    if (yRet) {
+      yRet.textContent = signedPct(d.return_horizon, 1);
+      yRet.style.color = (d.return_horizon == null || Number.isNaN(d.return_horizon)) ? "#e6e9f2" : (d.return_horizon >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(yRet, d.return_horizon);
+    }
+    const yl = document.getElementById("year-label");
+    if (yl) yl.textContent = `${d.horizon_years}年累计收益`;
+    if (yAnn) {
+      yAnn.textContent = signedPct(d.ann_return_horizon, 1);
+      yAnn.style.color = (d.ann_return_horizon == null || Number.isNaN(d.ann_return_horizon)) ? "#e6e9f2" : (d.ann_return_horizon >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(yAnn, d.ann_return_horizon);
+    }
+    const yak = document.getElementById("year-ann-k");
+    if (yak) yak.textContent = `${d.horizon_years}年平均年化`;
+    if (detailTitle) detailTitle.textContent = "历年收益与各月明细";
+    periods = (d.yearly_review || []).slice(); // 旧→新
+    paintBars(periods, { yearMode: true });
   } else {
+    detailMode = "holdings";
     if (yearSummary) yearSummary.style.display = "";
     const cy = d.calendar_year;
-    let periods = (d.monthly_review || []).slice();
+    periods = (d.monthly_review || []).slice();
     if (cy) {
       const prefix = `${cy}-`;
       periods = periods.filter(m => String(m.month || "").startsWith(prefix));
       document.getElementById("year-title").textContent = `${cy}年月度明细`;
-      document.getElementById("year-label").textContent = `${cy}年累计`;
+      document.getElementById("year-label").textContent = `${cy}年累计收益`;
       document.getElementById("year-ann-k").textContent = `${cy}年年化`;
       document.getElementById("year-ann-sub").textContent = "旁注为今年至今年化";
       yRet.textContent = signedPct(d.ytd_return, 1);
       yRet.style.color = (d.ytd_return == null || Number.isNaN(d.ytd_return)) ? "#e6e9f2" : (d.ytd_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(yRet, d.ytd_return);
       yAnn.textContent = signedPct(d.ann_return, 1);
       yAnn.style.color = (d.ann_return == null || Number.isNaN(d.ann_return)) ? "#e6e9f2" : (d.ann_return >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(yAnn, d.ann_return);
       document.getElementById("year-sub").textContent =
-        `${cy}-01-01 → ${d.asof} · 逐月持仓分布与月收益（月初实际持仓 · 扣费后）`;
+        `${cy}-01-01 → ${d.asof} · 逐月收益（扣费后）`;
     } else {
       yRet.textContent = signedPct(d.return_1y, 1);
       yRet.style.color = (d.return_1y == null || Number.isNaN(d.return_1y)) ? "#e6e9f2" : (d.return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(yRet, d.return_1y);
       yAnn.textContent = signedPct(d.ann_return_1y, 1);
       yAnn.style.color = (d.ann_return_1y == null || Number.isNaN(d.ann_return_1y)) ? "#e6e9f2" : (d.ann_return_1y >= 0 ? "#ff5b5b" : "#3ecf6e");
+      retTone(yAnn, d.ann_return_1y);
       document.getElementById("year-sub").textContent =
-        `近${periods.length || 12}个月逐月持仓分布与月收益（月初实际持仓 · 扣费后）`;
+        `近${periods.length || 12}个月月收益（扣费后）`;
+      const yl = document.getElementById("year-label");
+      if (yl) yl.textContent = "近一年累计收益";
     }
-    periods = periods.slice().reverse();
-    document.getElementById("month-list").innerHTML = periods.map(m => {
-      const tag = m.leg === "bank"
-        ? '<span class="tag tag-bank">银行腿</span>'
-        : (m.leg === "risk_etf"
-          ? '<span class="tag tag-risk">风险ETF</span>'
-          : (m.leg === "blend"
-            ? '<span class="tag tag-bank">配比</span>'
-            : (m.leg === "risk" ? '<span class="tag tag-risk">风险腿</span>' : "")));
-      const retCls = m.return > 0 ? "up" : (m.return < 0 ? "down" : "flat");
-      const rows = (m.holdings || []).map((h, idx) => `
-        <tr>
-          <td>${idx + 1}</td>
-          <td><span class="code">${h.code}</span></td>
-          <td>${h.name || ""}</td>
-          <td>${pct(h.weight, 2)}</td>
-        </tr>`).join("");
-      return `<div class="month-row">
-        <div class="month-head">
-          <div class="m-title">${m.month}</div>
-          <div class="m-meta">
-            ${tag}
-            <span style="color:#8b93a7;font-size:12px">仓位 ${pct(m.exposure,0)}</span>
-            <span class="m-ret ${retCls}">月收益 ${signedPct(m.return, 2)}</span>
+    if (detailTitle) detailTitle.textContent = "逐月持仓收益与个股明细";
+    paintBars(periods, { yearMode: false });
+  }
+
+  const monthlyAll = (d.monthly_review || []).slice();
+  if (monthList) {
+    if (detailMode === "yearly") {
+      const years = periods.slice().reverse(); // 近→远
+      monthList.innerHTML = years.map((m, idx) => {
+        const retCls = m.return > 0 ? "up" : (m.return < 0 ? "down" : "flat");
+        const y = String(m.year || "");
+        const months = monthlyAll.filter(x => String(x.month || "").startsWith(y + "-"));
+        const rows = months.length
+          ? months.map(mm => {
+              const rc = mm.return > 0 ? "up" : (mm.return < 0 ? "down" : "flat");
+              const lab = String(mm.month || "");
+              const labTxt = lab.length >= 7 ? (lab.slice(0, 4) + "." + lab.slice(5, 7)) : lab;
+              return `<tr>
+                <td>${labTxt}</td>
+                <td class="${rc}">${signedPct(mm.return, 2)}</td>
+                <td>${legTagOf(mm.leg) || legNameOf(mm.leg)}</td>
+                <td style="color:#aab2c5">${pct(mm.exposure, 0)}</td>
+              </tr>`;
+            }).join("")
+          : `<tr><td colspan="4" style="color:#71717a">该年暂无月度明细</td></tr>`;
+        return `<div class="month-row" data-idx="${idx}">
+          <div class="month-head">
+            <div class="m-title">${y}年</div>
+            <div class="m-meta">
+              <span class="m-ret ${retCls}">${signedPct(m.return, 2)}</span>
+              ${legTagOf(m.leg)}
+              <span style="color:#aab2c5;font-size:12px">仓位 ${pct(m.exposure, 0)}</span>
+              <button type="button" class="hold-toggle">${months.length ? `各月 ${months.length}` : "无各月"}</button>
+            </div>
           </div>
-        </div>
-        <table class="month-table">
-          <thead>
-            <tr><th>#</th><th>代码</th><th>名称</th><th>权重</th></tr>
-          </thead>
-          <tbody>
-            ${rows || '<tr><td colspan="4" style="color:#7c8499">无持仓</td></tr>'}
-          </tbody>
-        </table>
-      </div>`;
-    }).join("");
+          <div class="month-holdings">
+            <table class="month-table">
+              <thead><tr><th>月份</th><th>月收益</th><th>持仓腿</th><th>仓位</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+      }).join("");
+      monthList.querySelectorAll(".month-row").forEach(row => {
+        const btn = row.querySelector(".hold-toggle");
+        if (!btn) return;
+        btn.addEventListener("click", () => {
+          row.classList.toggle("open");
+          const open = row.classList.contains("open");
+          const y = years[Number(row.dataset.idx)];
+          const n = monthlyAll.filter(x => String(x.month || "").startsWith(String(y.year) + "-")).length;
+          btn.textContent = open ? "收起" : (n ? `各月 ${n}` : "无各月");
+        });
+      });
+    } else {
+      const listPeriods = periods.slice().reverse();
+      monthList.innerHTML = listPeriods.map((m, idx) => {
+        const holds = Array.isArray(m.holdings) ? m.holdings : [];
+        const retCls = m.return > 0 ? "up" : (m.return < 0 ? "down" : "flat");
+        const raw = String(m.month || "");
+        const title = raw.length >= 7
+          ? raw.slice(0, 4) + "." + raw.slice(5, 7)
+          : raw.replace("-", ".");
+        const rows = holds.length
+          ? holds.map(h => `<tr>
+              <td><span class="code">${h.code || ""}</span></td>
+              <td>${h.name || "—"}</td>
+              <td>${pct(h.weight, 2)}</td>
+            </tr>`).join("")
+          : `<tr><td colspan="3" style="color:#71717a">暂无持仓快照</td></tr>`;
+        return `<div class="month-row" data-idx="${idx}">
+          <div class="month-head">
+            <div class="m-title">${title}</div>
+            <div class="m-meta">
+              <span class="m-ret ${retCls}">${signedPct(m.return, 2)}</span>
+              ${legTagOf(m.leg)}
+              <span style="color:#aab2c5;font-size:12px">仓位 ${pct(m.exposure, 0)}</span>
+              <button type="button" class="hold-toggle">${holds.length ? `个股 ${holds.length}` : "无个股"}</button>
+            </div>
+          </div>
+          <div class="month-holdings">
+            <table class="month-table">
+              <thead><tr><th>代码</th><th>名称</th><th>仓位</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+      }).join("");
+      monthList.querySelectorAll(".month-row").forEach(row => {
+        const btn = row.querySelector(".hold-toggle");
+        if (!btn) return;
+        btn.addEventListener("click", () => {
+          row.classList.toggle("open");
+          const open = row.classList.contains("open");
+          const n = (listPeriods[Number(row.dataset.idx)]?.holdings || []).length;
+          btn.textContent = open ? "收起" : (n ? `个股 ${n}` : "无个股");
+        });
+      });
+    }
+  }
+
+  if (holdBtn && holdDetail) {
+    const openLabel = detailMode === "yearly" ? "查看历年收益详情" : "查看持仓详情";
+    const closeLabel = detailMode === "yearly" ? "收起历年收益详情" : "收起持仓详情";
+    const arrowDown = '<span class="arrows" aria-hidden="true"><span>▼</span></span>';
+    const arrowUp = '<span class="arrows" aria-hidden="true"><span>▲</span></span>';
+    const syncBtn = () => {
+      const open = holdDetail.classList.contains("open");
+      holdBtn.classList.toggle("active", open);
+      holdBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      holdBtn.innerHTML = (open ? closeLabel : openLabel) + " " + (open ? arrowUp : arrowDown);
+    };
+    holdBtn.onclick = () => {
+      holdDetail.classList.toggle("open");
+      syncBtn();
+      if (holdDetail.classList.contains("open")) {
+        holdDetail.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    holdDetail.classList.remove("open");
+    syncBtn();
   }
 
   // holdings
@@ -1158,12 +2150,11 @@ function render(d) {
     `按仓位权重降序 · 共 ${d.holdings.length} 只标的 · 懒人替代：银行ETF 512800 / 512000`;
   const legTag = d.leg === "bank"
     ? '<span class="tag tag-bank">银行腿</span>'
-    : (d.leg === "blend"
-      ? '<span class="tag tag-bank">配比</span>'
-      : '<span class="tag tag-risk">风险腿</span>');
-  const note = d.variant === "zenmeshu"
-    ? `风险 ${pct(d.risk_weight,0)} · 银行 ${pct(d.bank_weight,0)} · Z线性配比`
-    : (d.leg === "bank" ? "等权银行组合" : "流动性前2N→动量前N");
+    : (d.leg === "value"
+      ? '<span class="tag tag-bank">价值腿</span>'
+      : (d.leg === "blend"
+        ? '<span class="tag tag-bank">配比</span>'
+        : '<span class="tag tag-risk">风险腿</span>'));
   document.getElementById("hold-body").innerHTML = d.holdings.map(h => {
     let chgCls = "flat", chgTxt = "—";
     if (h.chg != null) {
@@ -1175,14 +2166,20 @@ function render(d) {
       <td>${h.name}</td>
       <td>${legTag}</td>
       <td>${pct(h.weight, 2)}</td>
-      <td>${money(h.price)}</td>
       <td class="${chgCls}">${chgTxt}</td>
-      <td>${note}</td>
     </tr>`;
   }).join("");
 }
 
 render(DATA);
+// 嵌入总看板 iframe 时：数据日期 / 执行建议改由顶栏展示，子页隐藏重复项
+if (window.self !== window.top) {
+  document.body.classList.add("embedded");
+  const asofWrap = document.getElementById("asof-wrap");
+  if (asofWrap) asofWrap.style.display = "none";
+  const actionBar = document.querySelector("#kpi-card-wrap > .action");
+  if (actionBar) actionBar.style.display = "none";
+}
 </script>
 </body>
 </html>

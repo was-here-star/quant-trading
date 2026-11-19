@@ -24,7 +24,7 @@ PY = ROOT / ".venv" / "bin" / "python"
 if not PY.exists():
     PY = Path(sys.executable)
 
-DESKTOP_HTML = Path.home() / "Desktop" / "指定红看板.html"
+DESKTOP_HTML = Path.home() / "Desktop" / "指定红看板策略" / "指定红策略-默认.html"
 CACHE_HTML = ROOT / "data_cache" / "strategy1" / "strategy1_dashboard.html"
 
 _lock = threading.Lock()

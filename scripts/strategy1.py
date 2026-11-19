@@ -38,6 +38,12 @@ from quant.strategies.zenmeshu import (
     ZenmeshuConfig,
     generate_target_weights_zenmeshu,
 )
+from quant.strategies.hongdeng import (
+    STRATEGY_NAME as HONGDENG_NAME,
+    DEFAULT_VALUE_SECTORS,
+    HongdengConfig,
+    generate_target_weights_hongdeng,
+)
 
 BANK_NAMES = {
     "600000.SS": "浦发银行",
@@ -214,11 +220,18 @@ def cmd_signal(args: argparse.Namespace) -> int:
     direction = "向上" if last["trend"] > 0 else "向下"
 
     cfg = Strategy1Config(top_n=args.top_n, rebalance=args.rebalance)
-    if args.breaker:
+    use_hongdeng = getattr(args, "variant", "zhidhong") == "hongdeng"
+    if args.breaker and not use_hongdeng:
         w, state = generate_target_weights_breaker(
             close, volume, cfg=cfg, breaker=BreakerConfig(), bank_symbols=banks
         )
         tag = STRATEGY_BREAKER_NAME
+    elif use_hongdeng:
+        hcfg = HongdengConfig(top_n=args.top_n, rebalance=args.rebalance)
+        w, state = generate_target_weights_hongdeng(
+            close, volume, cfg=hcfg, bank_symbols=banks
+        )
+        tag = f"策略｜{HONGDENG_NAME}"
     else:
         w, state = generate_target_weights(close, volume, cfg=cfg, bank_symbols=banks)
         tag = f"策略{STRATEGY_ID}｜{STRATEGY_NAME}"
@@ -236,10 +249,15 @@ def cmd_signal(args: argparse.Namespace) -> int:
     is_rebal_today = bool(st.get("rebalance", False))
 
     print("=" * 56)
-    print(tag if args.breaker else f"{tag}")
+    print(tag)
     print(f"调仓频率: {args.rebalance}（默认月末，月内持仓不动）")
-    if args.breaker:
+    if args.breaker and not use_hongdeng:
         print("规则: A段回撤-8%→银行 | B跑输银行3%/5日→银行 | C单日-3%→仓位50%")
+    if use_hongdeng:
+        print(
+            "规则: trend>0风险腿 | trend≤0价值腿"
+            "（50%银行 + 六方向近20日Top2各25%）"
+        )
     print(f"信号日: {dt.date()} | 今日是否调仓日: {'是' if is_rebal_today else '否'}")
     if last_rebal:
         print(f"最近调仓日: {last_rebal}")
@@ -249,21 +267,34 @@ def cmd_signal(args: argparse.Namespace) -> int:
     )
     print(f"比价20日: {last['trend']:+.2%} → {direction}")
     print(f"z-score: {last['z']:.2f} | 总仓位建议: {st['exposure']:.0%}")
-    print(f"当前持仓腿: {st['leg']}（{'银行等权' if st['leg']=='bank' else '风险动量Top'+str(args.top_n)}）")
+    leg = str(st["leg"])
+    if leg == "value":
+        sector = str(st.get("value_sector", "") or "")
+        leg_desc = f"价值腿·{sector}" if sector else "价值腿"
+    elif leg == "bank":
+        leg_desc = "银行等权"
+    else:
+        leg_desc = f"风险动量Top{args.top_n}"
+    print(f"当前持仓腿: {leg}（{leg_desc}）")
     if "signal_leg" in st.index:
         print(f"当日即时信号腿: {st['signal_leg']}（仅供参考；月频以持仓腿为准）")
-    if args.breaker and str(st.get("breaker", "")):
+    if use_hongdeng and leg == "value" and str(st.get("value_scores", "")):
+        print(f"价值方向得分(近20日): {st['value_scores']}")
+    if args.breaker and not use_hongdeng and str(st.get("breaker", "")):
         print(f"熔断标记: {st['breaker']}")
     print("=" * 56)
     print(f"{'代码':<12}{'名称':<10}{'权重':>8}")
     for sym, wt in pos.items():
         print(f"{sym:<12}{NAME_HINT.get(sym, ''):<10}{wt:>7.2%}")
     print("-" * 56)
-    if st["leg"] == "bank":
+    if leg == "bank":
         print("建议: 只持银行腿；不建议购买其他个股。")
         print("懒人替代: 100% 银行ETF（如512800/512000）。")
+    elif leg == "value":
+        sector = str(st.get("value_sector", "") or "价值")
+        print(f"建议: 按上表权重持有价值腿（{sector}）；风险腿仓位=0。")
     else:
-        print(f"建议: 等权持有上表 Top{args.top_n}；银行腿仓位=0。")
+        print(f"建议: 等权持有上表 Top{args.top_n}；价值/银行腿仓位=0。")
     if is_rebal_today:
         print("执行: 本日为月末调仓日，收盘决策 → 下一交易日换仓（T+1）。")
     else:
@@ -671,9 +702,13 @@ def _build_dashboard_payload(
     *,
     use_breaker: bool = False,
     use_zenmeshu: bool = False,
+    use_hongdeng: bool = False,
     etf_close=None,
     display_name: str | None = None,
     horizon_years: int | None = None,
+    value_top_k: int = 2,
+    value_sectors: dict | None = None,
+    value_top_ratios: tuple[float, ...] | None = None,
 ) -> dict:
     import numpy as np
     import pandas as pd
@@ -689,6 +724,25 @@ def _build_dashboard_payload(
         w, state = generate_target_weights_zenmeshu(close, etf_close, cfg=zcfg)
         name = display_name or STRATEGY_BREAKER_NAME
         px_panel = _price_panel_for_weights(w, close, etf_close)
+    elif use_hongdeng:
+        hcfg_kwargs = dict(
+            top_n=cfg.top_n,
+            z_window=cfg.z_window,
+            trend_lookback=cfg.trend_lookback,
+            rebalance=cfg.rebalance,
+            value_top_k=max(1, int(value_top_k)),
+            value_top_ratios=value_top_ratios,
+        )
+        if value_sectors:
+            hcfg_kwargs["value_sectors"] = {
+                k: list(v) for k, v in value_sectors.items()
+            }
+        hcfg = HongdengConfig(**hcfg_kwargs)
+        w, state = generate_target_weights_hongdeng(
+            close, volume, cfg=hcfg, bank_symbols=banks
+        )
+        name = display_name or HONGDENG_NAME
+        px_panel = close.reindex(columns=w.columns)
     else:
         base_w, base_st = generate_target_weights(
             close, volume, cfg=cfg, bank_symbols=banks
@@ -835,10 +889,13 @@ def _build_dashboard_payload(
                 }
             )
 
-    # 近12个自然月：当月收益 + 月初实际持仓（T+1 执行后的权重）
+    # 月度收益：近一年默认近12个月；长周期看板覆盖整段 horizon（供历年→各月详情）
     monthly_review: list[dict] = []
-    start_1y = (last - pd.DateOffset(years=1)).replace(day=1)
-    months = pd.period_range(start_1y.to_period("M"), last.to_period("M"), freq="M")
+    if horizon_years and horizon_start is not None:
+        start_m = horizon_start.replace(day=1)
+    else:
+        start_m = (last - pd.DateOffset(years=1)).replace(day=1)
+    months = pd.period_range(start_m.to_period("M"), last.to_period("M"), freq="M")
     for per in months:
         m_start = per.to_timestamp()
         m_end = (per + 1).to_timestamp() - pd.Timedelta(days=1)
@@ -851,17 +908,18 @@ def _build_dashboard_payload(
         snap_w = we.loc[snap_dt]
         snap_w = snap_w[snap_w > 1e-6].sort_values(ascending=False)
         hold_rows = []
-        for sym, wt in snap_w.items():
-            code = str(sym).replace(".SS", "").replace(".SZ", "")
-            hold_rows.append(
-                {
-                    "code": code,
-                    "name": NAME_HINT.get(
-                        sym, DEFAULT_RISK_ETFS.get(sym, code)
-                    ),
-                    "weight": round(float(wt), 4),
-                }
-            )
+        if not (horizon_years and horizon_start is not None):
+            for sym, wt in snap_w.items():
+                code = str(sym).replace(".SS", "").replace(".SZ", "")
+                hold_rows.append(
+                    {
+                        "code": code,
+                        "name": NAME_HINT.get(
+                            sym, DEFAULT_RISK_ETFS.get(sym, code)
+                        ),
+                        "weight": round(float(wt), 4),
+                    }
+                )
         st_m = state.loc[snap_dt] if snap_dt in state.index else None
         m_risk = (
             round(float(st_m["risk_weight"]), 4)
@@ -889,27 +947,71 @@ def _build_dashboard_payload(
 
     alert = str(st["alert"]) if "alert" in state.columns and pd.notna(st.get("alert")) else ""
     picks = str(st["risk_etf_picks"]) if "risk_etf_picks" in state.columns else ""
+    leg_now = str(st["leg"])
     risk_w = (
         round(float(st["risk_weight"]), 4)
         if "risk_weight" in state.columns
-        else (0.0 if str(st["leg"]) == "bank" else round(float(st["exposure"]), 4))
+        else (
+            0.0
+            if leg_now in ("bank", "value")
+            else round(float(st["exposure"]), 4)
+        )
     )
     bank_w = (
         round(float(st["bank_weight"]), 4)
         if "bank_weight" in state.columns
-        else (round(float(st["exposure"]), 4) if str(st["leg"]) == "bank" else 0.0)
+        else (
+            round(float(st["exposure"]), 4)
+            if leg_now in ("bank", "value")
+            else 0.0
+        )
     )
+    value_sector = (
+        str(st["value_sector"])
+        if "value_sector" in state.columns and pd.notna(st.get("value_sector"))
+        else ""
+    )
+    value_scores = (
+        str(st["value_scores"])
+        if "value_scores" in state.columns and pd.notna(st.get("value_scores"))
+        else ""
+    )
+    if use_hongdeng:
+        variant = "hongdeng"
+    elif use_zenmeshu:
+        variant = "zenmeshu"
+    elif use_breaker:
+        variant = "breaker"
+    else:
+        variant = "zhidhong"
+
+    value_rule = ""
+    if use_hongdeng:
+        k = max(1, int(value_top_k))
+        pool = list((value_sectors or DEFAULT_VALUE_SECTORS).keys())
+        pool_txt = "/".join(pool) if pool else "六方向"
+        if k == 1:
+            value_rule = f"50%银行+{pool_txt}近窗第1名50%"
+        elif value_top_ratios:
+            ratio_txt = ":".join(str(int(x)) if float(x).is_integer() else str(x) for x in value_top_ratios)
+            value_rule = f"50%银行+{pool_txt}近窗Top{k}按{ratio_txt}分"
+        else:
+            value_rule = f"50%银行+{pool_txt}近窗Top{k}平分剩余"
 
     return {
         "asof": str(last.date()),
         "strategy": name,
-        "variant": "zenmeshu" if use_zenmeshu else ("breaker" if use_breaker else "zhidhong"),
+        "variant": variant,
+        "value_top_k": int(value_top_k) if use_hongdeng else None,
+        "value_rule": value_rule,
         "rebalance": cfg.rebalance,
         "is_rebal": bool(st["rebalance"]),
         "last_rebal": str(last_rebal.date()),
         "next_hint": "约本月最后一个交易日",
-        "leg": str(st["leg"]),
+        "leg": leg_now,
         "signal_leg": str(st.get("signal_leg", st["leg"])),
+        "value_sector": value_sector,
+        "value_scores": value_scores,
         "alert": alert,
         "risk_etf_picks": picks,
         "z": round(z_v, 2),
@@ -1036,12 +1138,20 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
             print(f"长样本加载失败，改用短样本画水位图: {e}")
 
     use_zenmeshu = getattr(args, "variant", "zhidhong") == "zenmeshu"
-    use_breaker = (not use_zenmeshu) and getattr(args, "breaker", False)
-    display_name = (
-        STRATEGY_BREAKER_NAME
-        if use_zenmeshu
-        else (STRATEGY_NAME if not use_breaker else "熔断版")
+    use_hongdeng = getattr(args, "variant", "zhidhong") == "hongdeng"
+    use_breaker = (
+        (not use_zenmeshu)
+        and (not use_hongdeng)
+        and getattr(args, "breaker", False)
     )
+    if use_zenmeshu:
+        display_name = STRATEGY_BREAKER_NAME
+    elif use_hongdeng:
+        display_name = HONGDENG_NAME
+    elif use_breaker:
+        display_name = "熔断版"
+    else:
+        display_name = STRATEGY_NAME
     is_daily_rebal = str(getattr(args, "rebalance", "BME")).upper() in (
         "D",
         "DAY",
@@ -1158,6 +1268,30 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
             f"{etf_close.index.max().date() if len(etf_close) else '-'} | n={etf_close.shape}"
         )
 
+    value_top_k = int(getattr(args, "value_top_k", 2) or 2)
+    name_suffix = str(getattr(args, "name_suffix", "") or "").strip()
+    value_sectors = None
+    raw_sectors = str(getattr(args, "value_sectors", "") or "").strip()
+    if use_hongdeng and raw_sectors:
+        names = [x.strip() for x in raw_sectors.replace("，", ",").split(",") if x.strip()]
+        missing = [n for n in names if n not in DEFAULT_VALUE_SECTORS]
+        if missing:
+            raise SystemExit(
+                f"未知价值方向: {missing}；可选: {list(DEFAULT_VALUE_SECTORS)}"
+            )
+        value_sectors = {n: list(DEFAULT_VALUE_SECTORS[n]) for n in names}
+    value_top_ratios = None
+    raw_ratio = str(getattr(args, "value_top_ratio", "") or "").strip()
+    if use_hongdeng and raw_ratio:
+        parts = [p.strip() for p in raw_ratio.replace("：", ":").split(":") if p.strip()]
+        try:
+            nums = tuple(float(p) for p in parts)
+        except ValueError as e:
+            raise SystemExit(f"--value-top-ratio 格式错误，示例 3:2 ({e})") from e
+        if not nums or any(x < 0 for x in nums):
+            raise SystemExit("--value-top-ratio 需为正数比例，示例 3:2")
+        value_top_ratios = nums
+        value_top_k = max(value_top_k, len(nums))
     payload = _build_dashboard_payload(
         close,
         volume,
@@ -1168,16 +1302,32 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
         z_years=z_years,
         use_breaker=use_breaker,
         use_zenmeshu=use_zenmeshu,
+        use_hongdeng=use_hongdeng,
         etf_close=etf_close,
         display_name=display_name,
         horizon_years=int(horizon_years) if horizon_years else None,
+        value_top_k=value_top_k,
+        value_sectors=value_sectors,
+        value_top_ratios=value_top_ratios,
     )
-    # 近一年专版 / 长周期：禁止被实时服务跳转覆盖
-    if payload.get("horizon_years") or near_1y or is_daily_rebal:
+    # 近一年专版 / 长周期 / 红灯独立文档：禁止被实时服务跳转覆盖
+    if payload.get("horizon_years") or near_1y or is_daily_rebal or use_hongdeng:
         payload["live_redirect"] = False
-    # 近一年看板：水位区额外展示一张近1年图
+    slim_1y = bool(getattr(args, "slim", False)) and near_1y and not use_zenmeshu
+    # 近一年看板：默认双图（近N年+近1年）；--slim 精简为仅近1年单图
     if near_1y and not use_zenmeshu:
-        payload["z_panel_1y"] = True
+        if slim_1y:
+            payload["slim_1y"] = True
+            payload["z_panel_1y"] = False
+            payload["z_years"] = 1
+            # 去掉月度个股持仓，只保留收益列表字段
+            for m in payload.get("monthly_review") or []:
+                if isinstance(m, dict):
+                    m.pop("holdings", None)
+            if not use_hongdeng and not use_breaker:
+                payload["strategy"] = f"{STRATEGY_NAME} · 近一年月频2"
+        else:
+            payload["z_panel_1y"] = True
 
     today = datetime.now().strftime("%Y-%m-%d")
     if payload["asof"] < today:
@@ -1201,6 +1351,18 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
     html = template.replace("__DASHBOARD_DATA__", data_js)
 
     outs: list[Path] = []
+    # 红灯桌面命名：红灯策略V{n}-{周期}-{日频|月频}.html
+    # V1/V2/V5 → 红灯看板策略2；其余 → 红灯看板策略
+    ver_num = int(name_suffix) if str(name_suffix).isdigit() else 1
+    hongdeng_desk = Path.home() / "Desktop" / (
+        "红灯看板策略2" if ver_num in (1, 2, 5) else "红灯看板策略"
+    )
+    cache_suf = f"_{name_suffix}" if name_suffix else ""
+
+    def _hongdeng_desk_name(period: str, *, monthly: bool) -> str:
+        freq = "月频" if monthly else "日频"
+        return f"红灯策略V{ver_num}-{period}-{freq}.html"
+
     if args.out:
         outs = [Path(p) for p in args.out]
     elif use_zenmeshu:
@@ -1208,36 +1370,85 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
             ROOT / "data_cache" / "strategy1" / "zenmeshu_dashboard.html",
             Path.home() / "Desktop" / "怎么输看板.html",
         ]
-    elif horizon_years:
+    elif use_hongdeng and horizon_years:
         tag = f"{int(horizon_years)}y"
+        period = f"{int(horizon_years)}年"
         if horizon_monthly:
             outs = [
                 ROOT
                 / "data_cache"
                 / "strategy1"
-                / f"zhidhong_dashboard_{tag}_monthly.html",
-                Path.home() / "Desktop" / f"指定红看板-{int(horizon_years)}年-月频.html",
+                / f"hongdeng_dashboard_{tag}_monthly{cache_suf}.html",
+                hongdeng_desk / _hongdeng_desk_name(period, monthly=True),
             ]
         else:
             outs = [
-                ROOT / "data_cache" / "strategy1" / f"zhidhong_dashboard_{tag}.html",
-                Path.home() / "Desktop" / f"指定红看板-{int(horizon_years)}年.html",
+                ROOT
+                / "data_cache"
+                / "strategy1"
+                / f"hongdeng_dashboard_{tag}{cache_suf}.html",
+                hongdeng_desk / _hongdeng_desk_name(period, monthly=False),
             ]
-    elif near_1y and is_daily_rebal:
+    elif use_hongdeng and near_1y and is_daily_rebal:
         outs = [
-            ROOT / "data_cache" / "strategy1" / "zhidhong_dashboard_1y_daily.html",
-            Path.home() / "Desktop" / "指定红看板-近一年.html",
+            ROOT
+            / "data_cache"
+            / "strategy1"
+            / f"hongdeng_dashboard_1y_daily{cache_suf}.html",
+            hongdeng_desk / _hongdeng_desk_name("1年", monthly=False),
         ]
-    elif near_1y:
-        # 月末 BME 近一年专版，独立文件，不被实时服务覆盖
+    elif use_hongdeng and near_1y:
         outs = [
-            ROOT / "data_cache" / "strategy1" / "zhidhong_dashboard_1y_monthly.html",
-            Path.home() / "Desktop" / "指定红看板-近一年-月频.html",
+            ROOT
+            / "data_cache"
+            / "strategy1"
+            / f"hongdeng_dashboard_1y_monthly{cache_suf}.html",
+            hongdeng_desk / _hongdeng_desk_name("1年", monthly=True),
         ]
+    elif use_hongdeng:
+        outs = [
+            ROOT
+            / "data_cache"
+            / "strategy1"
+            / f"hongdeng_dashboard{cache_suf}.html",
+            hongdeng_desk / _hongdeng_desk_name("默认", monthly=False),
+        ]
+    elif horizon_years or near_1y:
+        # 指定红对齐红灯：指定红看板策略/指定红策略-{周期}-{日频|月频}.html
+        zhidhong_desk = Path.home() / "Desktop" / "指定红看板策略"
+        period = f"{int(horizon_years)}年" if horizon_years else "1年"
+        monthly = bool(horizon_monthly) if horizon_years else (not is_daily_rebal)
+        if near_1y and slim_1y:
+            # 精简版 V2：缓存 + 桌面根目录一份
+            outs = [
+                ROOT
+                / "data_cache"
+                / "strategy1"
+                / "zhidhong_dashboard_1y_monthly_slim.html",
+                Path.home() / "Desktop" / "指定红策略-1年-月频V2.html",
+            ]
+        else:
+            freq = "月频" if monthly else "日频"
+            desk_name = f"指定红策略-{period}-{freq}.html"
+            if horizon_years:
+                tag = f"{int(horizon_years)}y"
+                cache_name = (
+                    f"zhidhong_dashboard_{tag}_monthly.html"
+                    if monthly
+                    else f"zhidhong_dashboard_{tag}.html"
+                )
+            elif is_daily_rebal:
+                cache_name = "zhidhong_dashboard_1y_daily.html"
+            else:
+                cache_name = "zhidhong_dashboard_1y_monthly.html"
+            outs = [
+                ROOT / "data_cache" / "strategy1" / cache_name,
+                zhidhong_desk / desk_name,
+            ]
     else:
         outs = [
             ROOT / "data_cache" / "strategy1" / "strategy1_dashboard.html",
-            Path.home() / "Desktop" / "指定红看板.html",
+            Path.home() / "Desktop" / "指定红看板策略" / "指定红策略-默认.html",
             Path.home() / "Downloads" / "stock_dashboard.html",
         ]
 
@@ -1251,6 +1462,18 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
 
     if use_zenmeshu:
         json_name = "zenmeshu_dashboard_data.json"
+    elif use_hongdeng and horizon_years:
+        json_name = (
+            f"hongdeng_dashboard_{int(horizon_years)}y_monthly{cache_suf}_data.json"
+            if horizon_monthly
+            else f"hongdeng_dashboard_{int(horizon_years)}y{cache_suf}_data.json"
+        )
+    elif use_hongdeng and near_1y and is_daily_rebal:
+        json_name = f"hongdeng_dashboard_1y_daily{cache_suf}_data.json"
+    elif use_hongdeng and near_1y:
+        json_name = f"hongdeng_dashboard_1y_monthly{cache_suf}_data.json"
+    elif use_hongdeng:
+        json_name = f"hongdeng_dashboard{cache_suf}_data.json"
     elif horizon_years:
         json_name = (
             f"zhidhong_dashboard_{int(horizon_years)}y_monthly_data.json"
@@ -1259,6 +1482,8 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
         )
     elif near_1y and is_daily_rebal:
         json_name = "zhidhong_dashboard_1y_daily_data.json"
+    elif near_1y and slim_1y:
+        json_name = "zhidhong_dashboard_1y_monthly_slim_data.json"
     elif near_1y:
         json_name = "zhidhong_dashboard_1y_monthly_data.json"
     else:
@@ -1292,6 +1517,12 @@ def main() -> int:
         "--breaker",
         action="store_true",
         help="启用熔断 A+B+C（含单日-3%→仓位50%）",
+    )
+    sig.add_argument(
+        "--variant",
+        choices=["zhidhong", "zenmeshu", "hongdeng"],
+        default="zhidhong",
+        help="zhidhong=指定红；zenmeshu=怎么输；hongdeng=红灯(价值腿升级)",
     )
     sig.set_defaults(func=cmd_signal)
 
@@ -1329,9 +1560,9 @@ def main() -> int:
     dash.add_argument("--fee-bps", type=float, default=5.0)
     dash.add_argument(
         "--variant",
-        choices=["zhidhong", "zenmeshu"],
+        choices=["zhidhong", "zenmeshu", "hongdeng"],
         default="zhidhong",
-        help="zhidhong=指定红策略；zenmeshu=怎么输策略(ETF分仓优化版)",
+        help="zhidhong=指定红；zenmeshu=怎么输；hongdeng=红灯(价值腿升级)",
     )
     dash.add_argument(
         "--breaker",
@@ -1353,12 +1584,38 @@ def main() -> int:
     dash.add_argument(
         "--horizon-monthly",
         action="store_true",
-        help="长周期看板用月末BME，输出独立文档（如 指定红看板-10年-月频.html）",
+        help="长周期看板用月末BME，输出独立文档（如 指定红策略看板/指定红策略-10年-月频.html）",
     )
     dash.add_argument(
         "--near-1y",
         action="store_true",
-        help="近一年专版看板（默认月末BME→指定红看板-近一年-月频；配合 --rebalance D 为日频）",
+        help="近一年专版看板（默认月末BME→指定红策略-1年-月频；配合 --rebalance D 为日频）",
+    )
+    dash.add_argument(
+        "--slim",
+        action="store_true",
+        help="近一年精简版（配合 --near-1y）：年化与气温并排、隐藏配置饼图 → 桌面 指定红策略-1年-月频V2.html",
+    )
+    dash.add_argument(
+        "--value-top-k",
+        type=int,
+        default=2,
+        help="红灯价值腿：候选方向近窗取前K名分配剩余50%（1=仅最高者拿50%；默认2）",
+    )
+    dash.add_argument(
+        "--value-top-ratio",
+        default="",
+        help="红灯 TopK 相对比例，如 3:2（第1名:第2名；默认等权）",
+    )
+    dash.add_argument(
+        "--value-sectors",
+        default="",
+        help="红灯卫星价值方向子集，逗号分隔（如 煤炭,保险,电力；默认六方向全开）",
+    )
+    dash.add_argument(
+        "--name-suffix",
+        default="",
+        help="红灯看板文件名尾缀（如 4 → 红灯看板-近一年-4.html）",
     )
     dash.add_argument(
         "--lookback-days",
